@@ -12,9 +12,22 @@ class MainActivity : ComponentActivity() {
 
         val nativeBridge = NativeBridge()
 
+        val expression =
+            nativeBridge.createExpression(
+                "sin(x)"
+            )
+
+        val result =
+            nativeBridge.evaluateExpression(
+                expression,
+                0.0
+            )
+
         Log.d(
             "GraphSonic",
-            nativeBridge.getEngineMessage()
+            "f(3) = $result"
         )
+
+        nativeBridge.destroyExpression(expression)
     }
 }
