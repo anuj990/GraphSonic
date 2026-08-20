@@ -1,3 +1,5 @@
+#include <jni.h>
+
 // Write C++ code here.
 //
 // Do not forget to dynamically load the C++ library into your application.
@@ -15,3 +17,12 @@
 //         System.loadLibrary("graphsonic")
 //      }
 //    }
+
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_anuj_graphsonic_engine_NativeBridge_getEngineMessage(JNIEnv* env,jobject /* thiz */) {
+    return env->NewStringUTF(
+            "GraphSonic C++ Engine is working"
+    );
+}
