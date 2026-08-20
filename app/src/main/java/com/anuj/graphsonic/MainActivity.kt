@@ -10,24 +10,29 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val nativeBridge = NativeBridge()
+        val bridge = NativeBridge()
 
-        val expression =
-            nativeBridge.createExpression(
-                "sin(x)"
+        val handle =
+            bridge.createExpression("1/x")
+        val points =
+            bridge.generateGraph(
+                handle = handle,
+                xMin = -2.0,
+                xMax = 2.0,
+                sampleCount = 9
             )
 
-        val result =
-            nativeBridge.evaluateExpression(
-                expression,
-                0.0
+        for (i in points.indices step 2) {
+
+            val x = points[i]
+            val y = points[i + 1]
+
+            Log.d(
+                "GraphSonic",
+                "x=$x, y=$y"
             )
+        }
 
-        Log.d(
-            "GraphSonic",
-            "f(3) = $result"
-        )
-
-        nativeBridge.destroyExpression(expression)
+        bridge.destroyExpression(handle)
     }
 }

@@ -15,6 +15,7 @@ add_library(
         math/Parser.cpp
         math/Evaluator.cpp
         math/Expression.cpp
+        graph/GraphSampler.cpp
 )
 
 target_include_directories(

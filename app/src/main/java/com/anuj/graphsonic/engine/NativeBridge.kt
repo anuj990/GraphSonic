@@ -8,12 +8,23 @@ class NativeBridge {
         }
     }
 
-    external fun createExpression(expression: String): Long
+    external fun createExpression(
+        expression: String
+    ): Long
 
     external fun evaluateExpression(
         handle: Long,
         x: Double
     ): Double
 
-    external fun destroyExpression(handle: Long)
+    external fun generateGraph(
+        handle: Long,
+        xMin: Double,
+        xMax: Double,
+        sampleCount: Int
+    ): DoubleArray
+
+    external fun destroyExpression(
+        handle: Long
+    )
 }
