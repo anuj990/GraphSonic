@@ -1,38 +1,40 @@
 package com.anuj.graphsonic
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
-import com.anuj.graphsonic.engine.NativeBridge
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import com.anuj.graphsonic.feature.visualization.VisualizationScreen
+import com.anuj.graphsonic.feature.visualization.VisualizationViewModel
+import com.anuj.graphsonic.ui.GraphSonicTheme
 
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: VisualizationViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val bridge = NativeBridge()
+        setContent {
 
-        val handle =
-            bridge.createExpression("1/x")
-        val points =
-            bridge.generateGraph(
-                handle = handle,
-                xMin = -2.0,
-                xMax = 2.0,
-                sampleCount = 9
-            )
+            GraphSonicTheme {
 
-        for (i in points.indices step 2) {
+                val uiState by
+                viewModel.uiState.collectAsState()
 
-            val x = points[i]
-            val y = points[i + 1]
+                LaunchedEffect(Unit) {
+                    viewModel.loadExpression(
+                        "1/x"
+                    )
+                }
 
-            Log.d(
-                "GraphSonic",
-                "x=$x, y=$y"
-            )
+                VisualizationScreen(
+                    graphData = uiState.graphData
+                )
+            }
         }
-
-        bridge.destroyExpression(handle)
     }
 }
