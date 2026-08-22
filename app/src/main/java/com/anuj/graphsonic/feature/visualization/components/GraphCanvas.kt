@@ -23,6 +23,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.anuj.graphsonic.domain.model.GraphData
+import com.anuj.graphsonic.feature.audio.ListenState
 import com.anuj.graphsonic.feature.visualization.GraphCursorState
 import com.anuj.graphsonic.feature.visualization.GraphViewport
 import com.anuj.graphsonic.feature.visualization.utils.graphToScreen
@@ -37,10 +38,12 @@ import kotlin.math.pow
 fun GraphCanvas(
     graphData: GraphData,
     cursor: GraphCursorState,
+    listenState: ListenState,
     onCursorChanged: (GraphCursorState) -> Unit,
     evaluateAt: (Double) -> Double,
     onViewportChanged: (GraphViewport, Float) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+
 ) {
     var canvasWidth by remember {
         mutableStateOf(0f)
@@ -212,6 +215,10 @@ fun GraphCanvas(
             graphData = graphData,
             viewport = viewport
         )
+        drawListenCursor(
+            listenState = listenState,
+            viewport = viewport
+        )
 
         drawGraphCursor(
             cursor = cursor,
@@ -224,7 +231,55 @@ fun GraphCanvas(
         )
     }
 }
+private fun DrawScope.drawListenCursor(
+    listenState: ListenState,
+    viewport: GraphViewport
+) {
+    if (
+        !listenState.isPlaying ||
+        !listenState.x.isFinite() ||
+        !listenState.y.isFinite()
+    ) {
+        return
+    }
 
+    val position =
+        graphToScreen(
+            x = listenState.x,
+            y = listenState.y,
+            screenWidth = size.width,
+            screenHeight = size.height,
+            viewport = viewport
+        )
+
+    if (
+        position.x < 0f ||
+        position.x > size.width ||
+        position.y < 0f ||
+        position.y > size.height
+    ) {
+        return
+    }
+
+    drawCircle(
+        color = Color.Red,
+        radius = 10f,
+        center = position
+    )
+
+    drawLine(
+        color = Color.Red,
+        start = Offset(
+            position.x,
+            0f
+        ),
+        end = Offset(
+            position.x,
+            size.height
+        ),
+        strokeWidth = 2f
+    )
+}
 private fun updateCursor(
     position: Offset,
     viewport: GraphViewport,

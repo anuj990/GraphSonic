@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.engine.GraphEngine
 import com.anuj.graphsonic.engine.NativeBridge
+import com.anuj.graphsonic.feature.audio.ListenController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,11 +15,17 @@ import kotlinx.coroutines.launch
 data class VisualizationUiState(
     val graphData: GraphData = GraphData(emptyList()),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isListening: Boolean = false
 )
-
 class VisualizationViewModel : ViewModel() {
-
+    private val listenController =
+        ListenController(
+            scope = viewModelScope,
+            evaluateAt = ::evaluateAt
+        )
+    val listenState =
+        listenController.state
     private val nativeBridge =
         NativeBridge()
     private var samplingGeneration = 0L
@@ -91,12 +98,13 @@ class VisualizationViewModel : ViewModel() {
 
                 expressionHandle =
                     newHandle
-
+                listenController.reset()
                 _uiState.value =
                     VisualizationUiState(
                         graphData = graph,
                         isLoading = false,
-                        errorMessage = null
+                        errorMessage = null,
+                        isListening = false
                     )
 
                 _cursor.value =
@@ -172,7 +180,32 @@ class VisualizationViewModel : ViewModel() {
             screenWidth = screenWidth
         )
     }
+    fun startListening() {
+        listenController.start()
 
+        _uiState.value =
+            _uiState.value.copy(
+                isListening = true
+            )
+    }
+
+    fun stopListening() {
+        listenController.stop()
+
+        _uiState.value =
+            _uiState.value.copy(
+                isListening = false
+            )
+    }
+    fun updateListenRange(
+        startX: Double,
+        endX: Double
+    ) {
+        listenController.setRange(
+            start = startX,
+            end = endX
+        )
+    }
     private fun resampleGraph(
         viewport: GraphViewport,
         screenWidth: Float
@@ -248,6 +281,8 @@ class VisualizationViewModel : ViewModel() {
 
         viewportController.clear()
 
+        listenController.release()
+
         if (expressionHandle != 0L) {
             nativeBridge.destroyExpression(
                 expressionHandle
@@ -258,4 +293,5 @@ class VisualizationViewModel : ViewModel() {
 
         super.onCleared()
     }
+
 }

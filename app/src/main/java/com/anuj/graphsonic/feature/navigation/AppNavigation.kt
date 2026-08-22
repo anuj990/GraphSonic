@@ -15,6 +15,8 @@ fun AppNavigation(
     navController: NavHostController,
     viewModel: VisualizationViewModel
 ) {
+    val listenState by
+    viewModel.listenState.collectAsState()
     NavHost(
         navController = navController,
         startDestination =
@@ -60,9 +62,15 @@ fun AppNavigation(
             VisualizationScreen(
                 graphData = uiState.graphData,
                 cursor = cursor,
+                listenState = listenState,
                 onCursorChanged = viewModel::updateCursor,
                 evaluateAt = viewModel::evaluateAt,
-                onViewportChanged = viewModel::onViewportChanged
+                onViewportChanged =
+                    viewModel::onViewportChanged,
+                onStartListening =
+                    viewModel::startListening,
+                onStopListening =
+                    viewModel::stopListening
             )
         }
     }
