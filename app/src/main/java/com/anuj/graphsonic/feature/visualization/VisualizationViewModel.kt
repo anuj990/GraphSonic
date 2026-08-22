@@ -21,7 +21,7 @@ class VisualizationViewModel : ViewModel() {
 
     private val nativeBridge =
         NativeBridge()
-
+    private var samplingGeneration = 0L
     private val graphEngine =
         GraphEngine(nativeBridge)
 
@@ -53,7 +53,7 @@ class VisualizationViewModel : ViewModel() {
     fun loadExpression(
         expression: String
     ): Boolean {
-
+        samplingGeneration += 1L
         return try {
 
             val newHandle =
@@ -181,8 +181,12 @@ class VisualizationViewModel : ViewModel() {
             return
         }
 
-        val handle =
-            expressionHandle
+        val handle = expressionHandle
+
+        samplingGeneration += 1L
+
+        val generation =
+            samplingGeneration
 
         val halfWidth =
             screenWidth.toDouble() /
@@ -215,18 +219,17 @@ class VisualizationViewModel : ViewModel() {
         viewModelScope.launch(
             Dispatchers.Default
         ) {
-
             val graph =
                 graphEngine.generateGraph(
-                    expressionHandle =
-                        handle,
+                    expressionHandle = handle,
                     xMin = xMin,
                     xMax = xMax,
-                    sampleCount =
-                        sampleCount
+                    sampleCount = sampleCount
                 )
 
             if (
+                generation ==
+                samplingGeneration &&
                 handle ==
                 expressionHandle
             ) {
@@ -240,6 +243,8 @@ class VisualizationViewModel : ViewModel() {
     }
 
     override fun onCleared() {
+
+        samplingGeneration += 1L
 
         viewportController.clear()
 
