@@ -1,39 +1,33 @@
-package com.anuj.graphsonic.engine
+package com.anuj.graphsonic.feature.visualization
+
 
 import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.domain.model.GraphPoint
+import com.anuj.graphsonic.engine.GraphEngine
 
-class GraphEngine(
-    private val nativeBridge: NativeBridge
+class GraphSampler(
+    private val graphEngine: GraphEngine
 ) {
 
-    fun generateRawGraph(
-        expressionHandle: Long,
-        xMin: Double,
-        xMax: Double,
-        sampleCount: Int
-    ): DoubleArray {
-        return nativeBridge.generateGraph(
-            handle = expressionHandle,
-            xMin = xMin,
-            xMax = xMax,
-            sampleCount = sampleCount
-        )
-    }
-
-    fun generateGraph(
+    fun sample(
         expressionHandle: Long,
         xMin: Double,
         xMax: Double,
         sampleCount: Int
     ): GraphData {
 
+        val safeSampleCount =
+            sampleCount.coerceIn(
+                500,
+                10000
+            )
+
         val rawPoints =
-            generateRawGraph(
+            graphEngine.generateRawGraph(
                 expressionHandle = expressionHandle,
                 xMin = xMin,
                 xMax = xMax,
-                sampleCount = sampleCount
+                sampleCount = safeSampleCount
             )
 
         val points =
@@ -57,15 +51,5 @@ class GraphEngine(
             }
 
         return GraphData(points)
-    }
-
-    fun evaluate(
-        expressionHandle: Long,
-        x: Double
-    ): Double {
-        return nativeBridge.evaluateExpression(
-            handle = expressionHandle,
-            x = x
-        )
     }
 }

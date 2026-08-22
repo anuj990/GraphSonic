@@ -4,40 +4,30 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import com.anuj.graphsonic.feature.visualization.VisualizationScreen
+import androidx.navigation.compose.rememberNavController
+import com.anuj.graphsonic.feature.navigation.AppNavigation
 import com.anuj.graphsonic.feature.visualization.VisualizationViewModel
 import com.anuj.graphsonic.ui.GraphSonicTheme
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: VisualizationViewModel by viewModels()
+    private val viewModel:
+            VisualizationViewModel by viewModels()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
         super.onCreate(savedInstanceState)
 
         setContent {
             GraphSonicTheme {
 
-                val uiState by
-                viewModel.uiState.collectAsState()
+                val navController =
+                    rememberNavController()
 
-                val cursor by
-                viewModel.cursor.collectAsState()
-
-                LaunchedEffect(Unit) {
-                    viewModel.loadExpression(
-                        "1/x"
-                    )
-                }
-
-                VisualizationScreen(
-                    graphData = uiState.graphData,
-                    cursor = cursor,
-                    onCursorChanged = viewModel::updateCursor,
-                    evaluateAt = viewModel::evaluateAt
+                AppNavigation(
+                    navController = navController,
+                    viewModel = viewModel
                 )
             }
         }

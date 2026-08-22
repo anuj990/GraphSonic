@@ -54,7 +54,10 @@ fun GraphCanvas(
 
                     val newScale =
                         (oldScale * zoom)
-                            .coerceIn(10f, 500f)
+                            .coerceIn(
+                                10f,
+                                500f
+                            )
 
                     val beforeZoomX =
                         viewport.centerX +
@@ -116,6 +119,7 @@ fun GraphCanvas(
             .pointerInput(graphData, viewport) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { position ->
+
                         updateCursor(
                             position = position,
                             viewport = viewport,
@@ -125,7 +129,9 @@ fun GraphCanvas(
                             onCursorChanged(newCursor)
                         }
                     },
+
                     onDrag = { change, _ ->
+
                         updateCursor(
                             position = change.position,
                             viewport = viewport,
@@ -137,6 +143,7 @@ fun GraphCanvas(
 
                         change.consume()
                     },
+
                     onDragEnd = {
                         onCursorChanged(
                             cursor.copy(
@@ -144,6 +151,7 @@ fun GraphCanvas(
                             )
                         )
                     },
+
                     onDragCancel = {
                         onCursorChanged(
                             cursor.copy(
@@ -221,26 +229,32 @@ private fun DrawScope.drawGrid(
 
     val left =
         viewport.centerX -
-                centerX.toDouble() / scale.toDouble()
+                centerX.toDouble() /
+                scale.toDouble()
 
     val right =
         viewport.centerX +
-                centerX.toDouble() / scale.toDouble()
+                centerX.toDouble() /
+                scale.toDouble()
 
     val bottom =
         viewport.centerY -
-                centerY.toDouble() / scale.toDouble()
+                centerY.toDouble() /
+                scale.toDouble()
 
     val top =
         viewport.centerY +
-                centerY.toDouble() / scale.toDouble()
+                centerY.toDouble() /
+                scale.toDouble()
 
-    val step = chooseGridStep(scale)
+    val step =
+        chooseGridStep(scale)
 
     var x =
         floor(left / step) * step
 
     while (x <= right) {
+
         val screenX =
             centerX +
                     (
@@ -250,8 +264,14 @@ private fun DrawScope.drawGrid(
 
         drawLine(
             color = Color.LightGray,
-            start = Offset(screenX, 0f),
-            end = Offset(screenX, height),
+            start = Offset(
+                screenX,
+                0f
+            ),
+            end = Offset(
+                screenX,
+                height
+            ),
             strokeWidth = 1f
         )
 
@@ -262,6 +282,7 @@ private fun DrawScope.drawGrid(
         floor(bottom / step) * step
 
     while (y <= top) {
+
         val screenY =
             centerY -
                     (
@@ -271,8 +292,14 @@ private fun DrawScope.drawGrid(
 
         drawLine(
             color = Color.LightGray,
-            start = Offset(0f, screenY),
-            end = Offset(width, screenY),
+            start = Offset(
+                0f,
+                screenY
+            ),
+            end = Offset(
+                width,
+                screenY
+            ),
             strokeWidth = 1f
         )
 
@@ -304,19 +331,33 @@ private fun DrawScope.drawAxes(
                         ).toFloat()
 
     if (xAxis in 0f..width) {
+
         drawLine(
             color = Color.Black,
-            start = Offset(xAxis, 0f),
-            end = Offset(xAxis, height),
+            start = Offset(
+                xAxis,
+                0f
+            ),
+            end = Offset(
+                xAxis,
+                height
+            ),
             strokeWidth = 2f
         )
     }
 
     if (yAxis in 0f..height) {
+
         drawLine(
             color = Color.Black,
-            start = Offset(0f, yAxis),
-            end = Offset(width, yAxis),
+            start = Offset(
+                0f,
+                yAxis
+            ),
+            end = Offset(
+                width,
+                yAxis
+            ),
             strokeWidth = 2f
         )
     }
@@ -331,6 +372,7 @@ private fun DrawScope.drawGraph(
     var pathStarted = false
 
     for (point in graphData.points) {
+
         if (
             !point.x.isFinite() ||
             !point.y.isFinite()
@@ -359,12 +401,16 @@ private fun DrawScope.drawGraph(
         }
 
         if (!pathStarted) {
+
             path.moveTo(
                 position.x,
                 position.y
             )
+
             pathStarted = true
+
         } else {
+
             path.lineTo(
                 position.x,
                 position.y
@@ -395,21 +441,26 @@ private fun DrawScope.drawAxisLabels(
 
     val left =
         viewport.centerX -
-                centerX.toDouble() / scale.toDouble()
+                centerX.toDouble() /
+                scale.toDouble()
 
     val right =
         viewport.centerX +
-                centerX.toDouble() / scale.toDouble()
+                centerX.toDouble() /
+                scale.toDouble()
 
     val bottom =
         viewport.centerY -
-                centerY.toDouble() / scale.toDouble()
+                centerY.toDouble() /
+                scale.toDouble()
 
     val top =
         viewport.centerY +
-                centerY.toDouble() / scale.toDouble()
+                centerY.toDouble() /
+                scale.toDouble()
 
-    val step = chooseGridStep(scale)
+    val step =
+        chooseGridStep(scale)
 
     val axisX =
         centerX -
@@ -434,7 +485,9 @@ private fun DrawScope.drawAxisLabels(
         ceil(left / step) * step
 
     while (x <= right) {
+
         if (abs(x) > step / 100.0) {
+
             val screenX =
                 centerX +
                         (
@@ -463,7 +516,9 @@ private fun DrawScope.drawAxisLabels(
         ceil(bottom / step) * step
 
     while (y <= top) {
+
         if (abs(y) > step / 100.0) {
+
             val screenY =
                 centerY -
                         (
@@ -496,7 +551,9 @@ private fun chooseGridStep(
         80.0 / scale.toDouble()
 
     val exponent =
-        floor(log10(rawStep))
+        floor(
+            log10(rawStep)
+        )
 
     val base =
         10.0.pow(exponent)
