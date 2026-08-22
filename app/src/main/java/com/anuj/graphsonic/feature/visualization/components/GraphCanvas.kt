@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -38,15 +40,28 @@ fun GraphCanvas(
     onCursorChanged: (GraphCursorState) -> Unit,
     evaluateAt: (Double) -> Double,
     modifier: Modifier = Modifier
-) {
+){
+    var canvasWidth by remember {
+        mutableStateOf(0f)
+    }
     var viewport by remember {
         mutableStateOf(GraphViewport())
     }
 
     val textMeasurer = rememberTextMeasurer()
+    LaunchedEffect(
+        viewport,
+        canvasWidth
+    ) {
+        if (canvasWidth > 0f) {
 
+        }
+    }
     Canvas(
         modifier = modifier
+            .onSizeChanged {
+            canvasWidth = it.width.toFloat()
+        }
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoom, _ ->
 

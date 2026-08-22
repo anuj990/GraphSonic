@@ -26,8 +26,10 @@ class MainActivity : ComponentActivity() {
                     rememberNavController()
 
                 AppNavigation(
-                    navController = navController,
-                    viewModel = viewModel
+                    navController =
+                        navController,
+                    viewModel =
+                        viewModel
                 )
             }
         }

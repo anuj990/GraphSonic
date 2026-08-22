@@ -18,19 +18,25 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun EquationScreen(
-    onGraph: (String) -> Unit,
+    onGraph: (String) -> Boolean,
     modifier: Modifier = Modifier
 ) {
     var equation by remember {
         mutableStateOf("")
     }
 
+    var errorMessage by remember {
+        mutableStateOf<String?>(null)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center
+        verticalArrangement =
+            Arrangement.Center
     ) {
+
         Text(
             text = "GraphSonic"
         )
@@ -39,28 +45,60 @@ fun EquationScreen(
             value = equation,
             onValueChange = {
                 equation = it
+                errorMessage = null
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth(),
             singleLine = true,
             placeholder = {
-                Text("Enter equation")
-            }
+                Text(
+                    text = "Enter equation"
+                )
+            },
+            isError =
+                errorMessage != null
         )
+
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage!!,
+                modifier = Modifier
+                    .padding(
+                        top = 8.dp
+                    )
+            )
+        }
 
         Button(
             onClick = {
+
                 val expression =
                     equation.trim()
 
-                if (expression.isNotEmpty()) {
-                    onGraph(expression)
+                if (expression.isEmpty()) {
+                    errorMessage =
+                        "Enter an equation"
+                    return@Button
                 }
+
+                val success =
+                    onGraph(expression)
+
+                if (!success) {
+                    errorMessage =
+                        "Equation is invalid"
+                }
+
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp)
+                .padding(
+                    top = 16.dp
+                )
         ) {
-            Text("Graph")
+            Text(
+                text = "Graph"
+            )
         }
     }
 }

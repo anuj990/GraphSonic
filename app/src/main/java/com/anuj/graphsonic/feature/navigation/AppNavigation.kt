@@ -17,25 +17,40 @@ fun AppNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = AppDestination.Equation.route
+        startDestination =
+            AppDestination.Equation.route
     ) {
+
         composable(
-            route = AppDestination.Equation.route
+            route =
+                AppDestination.Equation.route
         ) {
+
             EquationScreen(
                 onGraph = { equation ->
-                    viewModel.loadExpression(equation)
 
-                    navController.navigate(
-                        AppDestination.Visualization.route
-                    )
+                    val success =
+                        viewModel.loadExpression(
+                            equation
+                        )
+
+                    if (success) {
+
+                        navController.navigate(
+                            AppDestination.Visualization.route
+                        )
+                    }
+
+                    success
                 }
             )
         }
 
         composable(
-            route = AppDestination.Visualization.route
+            route =
+                AppDestination.Visualization.route
         ) {
+
             val uiState by
             viewModel.uiState.collectAsState()
 
@@ -43,7 +58,8 @@ fun AppNavigation(
             viewModel.cursor.collectAsState()
 
             VisualizationScreen(
-                graphData = uiState.graphData,
+                graphData =
+                    uiState.graphData,
                 cursor = cursor,
                 onCursorChanged =
                     viewModel::updateCursor,

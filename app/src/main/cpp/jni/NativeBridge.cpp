@@ -3,6 +3,7 @@
 
 #include "../math/Expression.h"
 #include "../graph/GraphSampler.h"
+
 extern "C"
 JNIEXPORT jlong JNICALL
 Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
@@ -11,7 +12,10 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
         jstring expression
 ) {
     const char* chars =
-            env->GetStringUTFChars(expression, nullptr);
+            env->GetStringUTFChars(
+                    expression,
+                    nullptr
+            );
 
     try {
         auto* nativeExpression =
@@ -22,7 +26,9 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
                 chars
         );
 
-        return reinterpret_cast<jlong>(nativeExpression);
+        return reinterpret_cast<jlong>(
+                nativeExpression
+        );
 
     } catch (const std::exception& exception) {
 
@@ -75,6 +81,7 @@ Java_com_anuj_graphsonic_engine_NativeBridge_destroyExpression(
 
     delete expression;
 }
+
 extern "C"
 JNIEXPORT jdoubleArray JNICALL
 Java_com_anuj_graphsonic_engine_NativeBridge_generateGraph(
@@ -102,7 +109,9 @@ Java_com_anuj_graphsonic_engine_NativeBridge_generateGraph(
 
     jdoubleArray result =
             env->NewDoubleArray(
-                    static_cast<jsize>(points.size())
+                    static_cast<jsize>(
+                            points.size()
+                    )
             );
 
     if (result == nullptr) {
@@ -112,7 +121,9 @@ Java_com_anuj_graphsonic_engine_NativeBridge_generateGraph(
     env->SetDoubleArrayRegion(
             result,
             0,
-            static_cast<jsize>(points.size()),
+            static_cast<jsize>(
+                    points.size()
+            ),
             points.data()
     );
 
