@@ -39,33 +39,47 @@ fun GraphCanvas(
     cursor: GraphCursorState,
     onCursorChanged: (GraphCursorState) -> Unit,
     evaluateAt: (Double) -> Double,
+    onViewportChanged: (GraphViewport, Float) -> Unit,
     modifier: Modifier = Modifier
-){
+) {
     var canvasWidth by remember {
         mutableStateOf(0f)
     }
+
     var viewport by remember {
         mutableStateOf(GraphViewport())
     }
 
-    val textMeasurer = rememberTextMeasurer()
+    val textMeasurer =
+        rememberTextMeasurer()
+
     LaunchedEffect(
         viewport,
         canvasWidth
     ) {
         if (canvasWidth > 0f) {
-
+            onViewportChanged(
+                viewport,
+                canvasWidth
+            )
         }
     }
+
     Canvas(
         modifier = modifier
             .onSizeChanged {
-            canvasWidth = it.width.toFloat()
-        }
+                canvasWidth =
+                    it.width.toFloat()
+            }
             .pointerInput(Unit) {
-                detectTransformGestures { centroid, pan, zoom, _ ->
+                detectTransformGestures {
+                        centroid,
+                        pan,
+                        zoom,
+                        _ ->
 
-                    val oldScale = viewport.scale
+                    val oldScale =
+                        viewport.scale
 
                     val newScale =
                         (oldScale * zoom)
@@ -78,7 +92,8 @@ fun GraphCanvas(
                         viewport.centerX +
                                 (
                                         centroid.x.toDouble() -
-                                                size.width.toDouble() / 2.0
+                                                size.width.toDouble() /
+                                                2.0
                                         ) /
                                 oldScale.toDouble()
 
@@ -86,7 +101,8 @@ fun GraphCanvas(
                         viewport.centerY -
                                 (
                                         centroid.y.toDouble() -
-                                                size.height.toDouble() / 2.0
+                                                size.height.toDouble() /
+                                                2.0
                                         ) /
                                 oldScale.toDouble()
 
@@ -94,7 +110,8 @@ fun GraphCanvas(
                         viewport.centerX +
                                 (
                                         centroid.x.toDouble() -
-                                                size.width.toDouble() / 2.0
+                                                size.width.toDouble() /
+                                                2.0
                                         ) /
                                 newScale.toDouble()
 
@@ -102,58 +119,68 @@ fun GraphCanvas(
                         viewport.centerY -
                                 (
                                         centroid.y.toDouble() -
-                                                size.height.toDouble() / 2.0
+                                                size.height.toDouble() /
+                                                2.0
                                         ) /
                                 newScale.toDouble()
 
-                    viewport = viewport.copy(
-                        centerX = (
-                                beforeZoomX +
-                                        (
-                                                viewport.centerX.toDouble() -
-                                                        afterZoomX
-                                                ) -
-                                        pan.x.toDouble() /
-                                        newScale.toDouble()
-                                ).toFloat(),
+                    viewport =
+                        viewport.copy(
+                            centerX = (
+                                    beforeZoomX +
+                                            (
+                                                    viewport.centerX.toDouble() -
+                                                            afterZoomX
+                                                    ) -
+                                            pan.x.toDouble() /
+                                            newScale.toDouble()
+                                    ).toFloat(),
 
-                        centerY = (
-                                beforeZoomY +
-                                        (
-                                                viewport.centerY.toDouble() -
-                                                        afterZoomY
-                                                ) +
-                                        pan.y.toDouble() /
-                                        newScale.toDouble()
-                                ).toFloat(),
+                            centerY = (
+                                    beforeZoomY +
+                                            (
+                                                    viewport.centerY.toDouble() -
+                                                            afterZoomY
+                                                    ) +
+                                            pan.y.toDouble() /
+                                            newScale.toDouble()
+                                    ).toFloat(),
 
-                        scale = newScale
-                    )
+                            scale = newScale
+                        )
                 }
             }
             .pointerInput(graphData, viewport) {
                 detectDragGesturesAfterLongPress(
+
                     onDragStart = { position ->
 
                         updateCursor(
                             position = position,
                             viewport = viewport,
                             evaluateAt = evaluateAt,
-                            screenWidth = size.width.toFloat()
+                            screenWidth =
+                                size.width.toFloat()
                         ) { newCursor ->
-                            onCursorChanged(newCursor)
+                            onCursorChanged(
+                                newCursor
+                            )
                         }
                     },
 
                     onDrag = { change, _ ->
 
                         updateCursor(
-                            position = change.position,
+                            position =
+                                change.position,
                             viewport = viewport,
                             evaluateAt = evaluateAt,
-                            screenWidth = size.width.toFloat()
+                            screenWidth =
+                                size.width.toFloat()
                         ) { newCursor ->
-                            onCursorChanged(newCursor)
+                            onCursorChanged(
+                                newCursor
+                            )
                         }
 
                         change.consume()
@@ -203,7 +230,8 @@ private fun updateCursor(
     viewport: GraphViewport,
     evaluateAt: (Double) -> Double,
     screenWidth: Float,
-    onCursorChanged: (GraphCursorState) -> Unit
+    onCursorChanged:
+        (GraphCursorState) -> Unit
 ) {
     val x =
         screenToGraphX(
@@ -212,7 +240,8 @@ private fun updateCursor(
             viewport = viewport
         )
 
-    val y = evaluateAt(x)
+    val y =
+        evaluateAt(x)
 
     if (!y.isFinite()) {
         onCursorChanged(
@@ -346,7 +375,6 @@ private fun DrawScope.drawAxes(
                         ).toFloat()
 
     if (xAxis in 0f..width) {
-
         drawLine(
             color = Color.Black,
             start = Offset(
@@ -362,7 +390,6 @@ private fun DrawScope.drawAxes(
     }
 
     if (yAxis in 0f..height) {
-
         drawLine(
             color = Color.Black,
             start = Offset(
@@ -407,9 +434,11 @@ private fun DrawScope.drawGraph(
 
         if (
             position.x < -10000f ||
-            position.x > size.width + 10000f ||
+            position.x >
+            size.width + 10000f ||
             position.y < -10000f ||
-            position.y > size.height + 10000f
+            position.y >
+            size.height + 10000f
         ) {
             pathStarted = false
             continue

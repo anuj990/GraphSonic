@@ -1,12 +1,15 @@
 package com.anuj.graphsonic.feature.visualization
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.engine.GraphEngine
 import com.anuj.graphsonic.engine.NativeBridge
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class VisualizationUiState(
     val graphData: GraphData = GraphData(emptyList()),
@@ -21,6 +24,12 @@ class VisualizationViewModel : ViewModel() {
 
     private val graphEngine =
         GraphEngine(nativeBridge)
+
+    private val viewportController =
+        GraphViewportController(
+            scope = viewModelScope,
+            onViewportSettled = ::resampleGraph
+        )
 
     private var expressionHandle =
         0L
@@ -53,6 +62,7 @@ class VisualizationViewModel : ViewModel() {
                 )
 
             if (newHandle == 0L) {
+
                 _uiState.value =
                     _uiState.value.copy(
                         errorMessage =
@@ -107,6 +117,7 @@ class VisualizationViewModel : ViewModel() {
                 )
 
             false
+
         } catch (
             exception: Exception
         ) {
@@ -152,7 +163,85 @@ class VisualizationViewModel : ViewModel() {
         _cursor.value = cursor
     }
 
+    fun onViewportChanged(
+        viewport: GraphViewport,
+        screenWidth: Float
+    ) {
+        viewportController.onViewportChanged(
+            viewport = viewport,
+            screenWidth = screenWidth
+        )
+    }
+
+    private fun resampleGraph(
+        viewport: GraphViewport,
+        screenWidth: Float
+    ) {
+        if (expressionHandle == 0L) {
+            return
+        }
+
+        val handle =
+            expressionHandle
+
+        val halfWidth =
+            screenWidth.toDouble() /
+                    (
+                            2.0 *
+                                    viewport.scale.toDouble()
+                            )
+
+        val xMin =
+            viewport.centerX.toDouble() -
+                    halfWidth
+
+        val xMax =
+            viewport.centerX.toDouble() +
+                    halfWidth
+
+        val sampleCount =
+            ((xMax - xMin) * 100.0)
+                .toInt()
+                .coerceIn(
+                    1000,
+                    10000
+                )
+
+        _uiState.value =
+            _uiState.value.copy(
+                isLoading = true
+            )
+
+        viewModelScope.launch(
+            Dispatchers.Default
+        ) {
+
+            val graph =
+                graphEngine.generateGraph(
+                    expressionHandle =
+                        handle,
+                    xMin = xMin,
+                    xMax = xMax,
+                    sampleCount =
+                        sampleCount
+                )
+
+            if (
+                handle ==
+                expressionHandle
+            ) {
+                _uiState.value =
+                    _uiState.value.copy(
+                        graphData = graph,
+                        isLoading = false
+                    )
+            }
+        }
+    }
+
     override fun onCleared() {
+
+        viewportController.clear()
 
         if (expressionHandle != 0L) {
             nativeBridge.destroyExpression(

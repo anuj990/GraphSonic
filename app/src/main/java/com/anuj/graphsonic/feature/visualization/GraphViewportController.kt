@@ -1,14 +1,14 @@
 package com.anuj.graphsonic.feature.visualization
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class GraphViewportController(
     private val scope: CoroutineScope,
-    private val onViewportSettled: (GraphViewport, Float) -> Unit
+    private val onViewportSettled:
+        (GraphViewport, Float) -> Unit
 ) {
 
     private var samplingJob: Job? = null
@@ -19,14 +19,15 @@ class GraphViewportController(
     ) {
         samplingJob?.cancel()
 
-        samplingJob = scope.launch(Dispatchers.Main.immediate) {
-            delay(150L)
+        samplingJob =
+            scope.launch {
+                delay(150L)
 
-            onViewportSettled(
-                viewport,
-                screenWidth
-            )
-        }
+                onViewportSettled(
+                    viewport,
+                    screenWidth
+                )
+            }
     }
 
     fun clear() {

@@ -58,13 +58,11 @@ fun AppNavigation(
             viewModel.cursor.collectAsState()
 
             VisualizationScreen(
-                graphData =
-                    uiState.graphData,
+                graphData = uiState.graphData,
                 cursor = cursor,
-                onCursorChanged =
-                    viewModel::updateCursor,
-                evaluateAt =
-                    viewModel::evaluateAt
+                onCursorChanged = viewModel::updateCursor,
+                evaluateAt = viewModel::evaluateAt,
+                onViewportChanged = viewModel::onViewportChanged
             )
         }
     }

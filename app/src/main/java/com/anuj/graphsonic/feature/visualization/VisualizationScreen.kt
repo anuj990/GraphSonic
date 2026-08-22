@@ -14,6 +14,7 @@ fun VisualizationScreen(
     cursor: GraphCursorState,
     onCursorChanged: (GraphCursorState) -> Unit,
     evaluateAt: (Double) -> Double,
+    onViewportChanged: (GraphViewport, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -24,6 +25,7 @@ fun VisualizationScreen(
             cursor = cursor,
             onCursorChanged = onCursorChanged,
             evaluateAt = evaluateAt,
+            onViewportChanged = onViewportChanged,
             modifier = Modifier.fillMaxSize()
         )
 
