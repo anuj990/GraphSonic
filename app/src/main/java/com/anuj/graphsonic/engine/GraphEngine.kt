@@ -6,6 +6,15 @@ import com.anuj.graphsonic.domain.model.GraphPoint
 class GraphEngine(
     private val nativeBridge: NativeBridge
 ) {
+    fun evaluate(
+        expressionHandle: Long,
+        x: Double
+    ): Double {
+        return nativeBridge.evaluateExpression(
+            handle = expressionHandle,
+            x = x
+        )
+    }
 
     fun generateGraph(
         expressionHandle: Long,

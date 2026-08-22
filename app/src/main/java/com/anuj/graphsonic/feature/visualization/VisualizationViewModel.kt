@@ -67,4 +67,29 @@ class VisualizationViewModel : ViewModel() {
 
         super.onCleared()
     }
+    fun evaluateAt(
+        x: Double
+    ): Double {
+        if (expressionHandle == 0L) {
+            return Double.NaN
+        }
+
+        return graphEngine.evaluate(
+            expressionHandle = expressionHandle,
+            x = x
+        )
+    }
+    private val _cursor =
+        MutableStateFlow(
+            GraphCursorState()
+        )
+
+    val cursor: StateFlow<GraphCursorState> =
+        _cursor.asStateFlow()
+
+    fun updateCursor(
+        cursor: GraphCursorState
+    ) {
+        _cursor.value = cursor
+    }
 }

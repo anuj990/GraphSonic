@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.anuj.graphsonic.feature.visualization.VisualizationScreen
 import com.anuj.graphsonic.feature.visualization.VisualizationViewModel
 import com.anuj.graphsonic.ui.GraphSonicTheme
@@ -19,11 +19,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-
             GraphSonicTheme {
 
                 val uiState by
                 viewModel.uiState.collectAsState()
+
+                val cursor by
+                viewModel.cursor.collectAsState()
 
                 LaunchedEffect(Unit) {
                     viewModel.loadExpression(
@@ -32,7 +34,10 @@ class MainActivity : ComponentActivity() {
                 }
 
                 VisualizationScreen(
-                    graphData = uiState.graphData
+                    graphData = uiState.graphData,
+                    cursor = cursor,
+                    onCursorChanged = viewModel::updateCursor,
+                    evaluateAt = viewModel::evaluateAt
                 )
             }
         }
