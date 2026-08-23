@@ -1,6 +1,5 @@
 package com.anuj.graphsonic.feature.visualization.components
 
-
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
@@ -45,6 +44,13 @@ fun ListenInfoCard(
                     )
                 } Hz"
             )
+
+            listenState.note?.let { note ->
+                Text(
+                    text =
+                        "Note = ${note.name}${note.octave}"
+                )
+            }
         }
     }
 }

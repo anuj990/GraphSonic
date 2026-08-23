@@ -15,7 +15,8 @@ class ListenController(
     private val scope: CoroutineScope,
     private val evaluateAt: (Double) -> Double
 ) {
-
+    private val noteMapper =
+        NoteMapper()
     private val audioEngine =
         AudioEngine()
 
@@ -36,7 +37,7 @@ class ListenController(
     private var startX = -10.0
     private var endX = 10.0
     private var step = 0.01
-
+    private var playbackSpeed = 1.0
     fun start() {
 
         if (playbackJob?.isActive == true) {
@@ -79,22 +80,33 @@ class ListenController(
                                 isPlaying = true,
                                 x = x,
                                 y = y,
-                                frequency =
-                                    frequency
+                                frequency = frequency,
+                                note =
+                                    if (
+                                        frequencyMode ==
+                                        FrequencyMode.Musical
+                                    ) {
+                                        noteMapper.map(
+                                            frequency
+                                        )
+                                    } else {
+                                        null
+                                    }
                             )
 
-                        x += step
+                        x += step * playbackSpeed
 
                     } else {
 
-                        x += step
+                        x += step * playbackSpeed
 
                         _state.value =
                             ListenState(
                                 isPlaying = true,
                                 x = x,
                                 y = Double.NaN,
-                                frequency = 0.0
+                                frequency = 0.0,
+                                note = null
                             )
                     }
 
@@ -111,7 +123,15 @@ class ListenController(
     ) {
         frequencyMode = mode
     }
-
+    fun setPlaybackSpeed(
+        speed: Double
+    ) {
+        playbackSpeed =
+            speed.coerceIn(
+                0.25,
+                4.0
+            )
+    }
     fun stop() {
 
         playbackJob?.cancel()

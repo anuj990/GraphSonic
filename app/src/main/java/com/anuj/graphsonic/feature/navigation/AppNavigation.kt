@@ -15,8 +15,15 @@ fun AppNavigation(
     navController: NavHostController,
     viewModel: VisualizationViewModel
 ) {
+    val frequencyMode by
+    viewModel.frequencyMode.collectAsState()
+
+    val playbackSpeed by
+    viewModel.playbackSpeed.collectAsState()
+
     val listenState by
     viewModel.listenState.collectAsState()
+
     NavHost(
         navController = navController,
         startDestination =
@@ -27,7 +34,6 @@ fun AppNavigation(
             route =
                 AppDestination.Equation.route
         ) {
-
             EquationScreen(
                 onGraph = { equation ->
 
@@ -37,7 +43,6 @@ fun AppNavigation(
                         )
 
                     if (success) {
-
                         navController.navigate(
                             AppDestination.Visualization.route
                         )
@@ -52,7 +57,6 @@ fun AppNavigation(
             route =
                 AppDestination.Visualization.route
         ) {
-
             val uiState by
             viewModel.uiState.collectAsState()
 
@@ -60,17 +64,30 @@ fun AppNavigation(
             viewModel.cursor.collectAsState()
 
             VisualizationScreen(
-                graphData = uiState.graphData,
-                cursor = cursor,
-                listenState = listenState,
-                onCursorChanged = viewModel::updateCursor,
-                evaluateAt = viewModel::evaluateAt,
+                graphData =
+                    uiState.graphData,
+                cursor =
+                    cursor,
+                listenState =
+                    listenState,
+                frequencyMode =
+                    frequencyMode,
+                playbackSpeed =
+                    playbackSpeed,
+                onCursorChanged =
+                    viewModel::updateCursor,
+                evaluateAt =
+                    viewModel::evaluateAt,
                 onViewportChanged =
                     viewModel::onViewportChanged,
                 onStartListening =
                     viewModel::startListening,
                 onStopListening =
-                    viewModel::stopListening
+                    viewModel::stopListening,
+                onFrequencyModeChanged =
+                    viewModel::setFrequencyMode,
+                onPlaybackSpeedChanged =
+                    viewModel::setPlaybackSpeed
             )
         }
     }

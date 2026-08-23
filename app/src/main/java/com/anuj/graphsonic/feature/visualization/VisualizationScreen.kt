@@ -8,7 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.anuj.graphsonic.domain.model.GraphData
+import com.anuj.graphsonic.feature.audio.FrequencyMode
 import com.anuj.graphsonic.feature.audio.ListenState
 import com.anuj.graphsonic.feature.visualization.components.CursorInfoCard
 import com.anuj.graphsonic.feature.visualization.components.GraphCanvas
@@ -25,7 +27,11 @@ fun VisualizationScreen(
     onViewportChanged: (GraphViewport, Float) -> Unit,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    frequencyMode: FrequencyMode,
+    playbackSpeed: Double,
+    onFrequencyModeChanged: (FrequencyMode) -> Unit,
+    onPlaybackSpeedChanged: (Double) -> Unit,
 ) {
     Box(
         modifier = modifier.fillMaxSize()
@@ -58,8 +64,14 @@ fun VisualizationScreen(
 
             ListenControls(
                 isPlaying = listenState.isPlaying,
+                frequencyMode = frequencyMode,
+                playbackSpeed = playbackSpeed,
                 onStart = onStartListening,
-                onStop = onStopListening
+                onStop = onStopListening,
+                onFrequencyModeChanged =
+                    onFrequencyModeChanged,
+                onPlaybackSpeedChanged =
+                    onPlaybackSpeedChanged
             )
         }
     }

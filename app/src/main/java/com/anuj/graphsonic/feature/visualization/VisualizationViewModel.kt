@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.engine.GraphEngine
 import com.anuj.graphsonic.engine.NativeBridge
+import com.anuj.graphsonic.feature.audio.FrequencyMode
 import com.anuj.graphsonic.feature.audio.ListenController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,21 @@ class VisualizationViewModel : ViewModel() {
             scope = viewModelScope,
             evaluateAt = ::evaluateAt
         )
+    private val _frequencyMode =
+        MutableStateFlow(
+            FrequencyMode.Continuous
+        )
+
+    val frequencyMode:
+            StateFlow<FrequencyMode> =
+        _frequencyMode.asStateFlow()
+
+    private val _playbackSpeed =
+        MutableStateFlow(1.0)
+
+    val playbackSpeed:
+            StateFlow<Double> =
+        _playbackSpeed.asStateFlow()
     val listenState =
         listenController.state
     private val nativeBridge =
@@ -56,7 +72,31 @@ class VisualizationViewModel : ViewModel() {
 
     val cursor: StateFlow<GraphCursorState> =
         _cursor.asStateFlow()
+    fun setFrequencyMode(
+        mode: FrequencyMode
+    ) {
+        _frequencyMode.value = mode
 
+        listenController.setFrequencyMode(
+            mode
+        )
+    }
+    fun setPlaybackSpeed(
+        speed: Double
+    ) {
+        val safeSpeed =
+            speed.coerceIn(
+                0.25,
+                4.0
+            )
+
+        _playbackSpeed.value =
+            safeSpeed
+
+        listenController.setPlaybackSpeed(
+            safeSpeed
+        )
+    }
     fun loadExpression(
         expression: String
     ): Boolean {
