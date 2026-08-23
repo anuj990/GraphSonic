@@ -175,6 +175,26 @@ class VisualizationViewModel : ViewModel() {
         viewport: GraphViewport,
         screenWidth: Float
     ) {
+        val halfWidth =
+            screenWidth.toDouble() /
+                    (
+                            2.0 *
+                                    viewport.scale.toDouble()
+                            )
+
+        val startX =
+            viewport.centerX.toDouble() -
+                    halfWidth
+
+        val endX =
+            viewport.centerX.toDouble() +
+                    halfWidth
+
+        listenController.setRange(
+            start = startX,
+            end = endX
+        )
+
         viewportController.onViewportChanged(
             viewport = viewport,
             screenWidth = screenWidth

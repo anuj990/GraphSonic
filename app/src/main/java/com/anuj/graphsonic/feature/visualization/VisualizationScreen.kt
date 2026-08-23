@@ -1,6 +1,7 @@
 package com.anuj.graphsonic.feature.visualization
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import com.anuj.graphsonic.feature.audio.ListenState
 import com.anuj.graphsonic.feature.visualization.components.CursorInfoCard
 import com.anuj.graphsonic.feature.visualization.components.GraphCanvas
 import com.anuj.graphsonic.feature.visualization.components.ListenControls
+import com.anuj.graphsonic.feature.visualization.components.ListenInfoCard
 
 @Composable
 fun VisualizationScreen(
@@ -31,8 +33,8 @@ fun VisualizationScreen(
         GraphCanvas(
             graphData = graphData,
             cursor = cursor,
-            onCursorChanged = onCursorChanged,
             listenState = listenState,
+            onCursorChanged = onCursorChanged,
             evaluateAt = evaluateAt,
             onViewportChanged = onViewportChanged,
             modifier = Modifier.fillMaxSize()
@@ -42,13 +44,23 @@ fun VisualizationScreen(
             cursor = cursor
         )
 
-        ListenControls(
-            isPlaying = listenState.isPlaying,
-            onStart = onStartListening,
-            onStop = onStopListening,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
-        )
+        ) {
+            ListenInfoCard(
+                listenState = listenState,
+                modifier = Modifier.padding(
+                    bottom = 8.dp
+                )
+            )
+
+            ListenControls(
+                isPlaying = listenState.isPlaying,
+                onStart = onStartListening,
+                onStop = onStopListening
+            )
+        }
     }
 }

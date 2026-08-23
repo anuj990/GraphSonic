@@ -1,31 +1,49 @@
 package com.anuj.graphsonic.feature.audio
 
-
 import kotlin.math.abs
 import kotlin.math.ln
-import kotlin.math.max
+import kotlin.math.pow
+
+enum class FrequencyMode {
+    Continuous,
+    Musical
+}
 
 class FrequencyMapper {
 
     private val minFrequency = 80.0
     private val maxFrequency = 2000.0
 
+    private val referenceFrequency = 440.0
+
     fun map(
-        value: Double
+        value: Double,
+        mode: FrequencyMode = FrequencyMode.Continuous
     ): Double {
         if (!value.isFinite()) {
-            return minFrequency
+            return 0.0
         }
 
+        return when (mode) {
+            FrequencyMode.Continuous ->
+                mapContinuous(value)
+
+            FrequencyMode.Musical ->
+                mapMusical(value)
+        }
+    }
+
+    private fun mapContinuous(
+        value: Double
+    ): Double {
         val magnitude =
-            max(
-                abs(value),
+            abs(value).coerceAtLeast(
                 0.000001
             )
 
         val normalized =
             ln(1.0 + magnitude) /
-                    ln(1.0 + 100.0)
+                    ln(101.0)
 
         return minFrequency +
                 normalized.coerceIn(
@@ -36,5 +54,39 @@ class FrequencyMapper {
                         maxFrequency -
                                 minFrequency
                         )
+    }
+
+    private fun mapMusical(
+        value: Double
+    ): Double {
+        val continuous =
+            mapContinuous(value)
+
+        val semitones =
+            12.0 *
+                    (
+                            ln(
+                                continuous /
+                                        referenceFrequency
+                            ) /
+                                    ln(2.0)
+                            )
+
+        val roundedSemitones =
+            kotlin.math.round(
+                semitones
+            )
+
+        val frequency =
+            referenceFrequency *
+                    2.0.pow(
+                        roundedSemitones /
+                                12.0
+                    )
+
+        return frequency.coerceIn(
+            minFrequency,
+            maxFrequency
+        )
     }
 }

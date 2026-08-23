@@ -29,12 +29,13 @@ class ListenController(
 
     val state: StateFlow<ListenState> =
         _state.asStateFlow()
-
+    private var frequencyMode =
+        FrequencyMode.Continuous
     private var playbackJob: Job? = null
 
     private var startX = -10.0
     private var endX = 10.0
-    private var step = 0.02
+    private var step = 0.01
 
     fun start() {
 
@@ -61,36 +62,54 @@ class ListenController(
                     val y =
                         evaluateAt(x)
 
-                    val frequency =
-                        if (y.isFinite()) {
-                            frequencyMapper.map(y)
-                        } else {
-                            0.0
-                        }
+                    if (y.isFinite()) {
 
-                    if (frequency > 0.0) {
+                        val frequency =
+                            frequencyMapper.map(
+                                value = y,
+                                mode = frequencyMode
+                            )
+
                         audioEngine.setFrequency(
                             frequency
                         )
+
+                        _state.value =
+                            ListenState(
+                                isPlaying = true,
+                                x = x,
+                                y = y,
+                                frequency =
+                                    frequency
+                            )
+
+                        x += step
+
+                    } else {
+
+                        x += step
+
+                        _state.value =
+                            ListenState(
+                                isPlaying = true,
+                                x = x,
+                                y = Double.NaN,
+                                frequency = 0.0
+                            )
                     }
-
-                    _state.value =
-                        ListenState(
-                            isPlaying = true,
-                            x = x,
-                            y = y,
-                            frequency = frequency
-                        )
-
-                    x += step
 
                     if (x > endX) {
                         x = startX
                     }
 
-                    delay(20L)
+                    delay(10L)
                 }
             }
+    }
+    fun setFrequencyMode(
+        mode: FrequencyMode
+    ) {
+        frequencyMode = mode
     }
 
     fun stop() {
@@ -117,7 +136,7 @@ class ListenController(
             )
 
         endX =
-            maxOf(
+            max(
                 start,
                 end
             )

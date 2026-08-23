@@ -1,7 +1,5 @@
 package com.anuj.graphsonic.feature.audio
 
-
-
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
@@ -57,18 +55,108 @@ class AudioEngine {
 
     private var phase = 0.0
 
+    @Volatile
+    private var targetFrequency =
+        minFrequency
+
+    private var currentFrequency =
+        minFrequency
+
+    private var audioJob:
+            Thread? = null
+
+    @Volatile
+    private var running = false
+
     fun start() {
-        if (
-            audioTrack.playState ==
-            AudioTrack.PLAYSTATE_PLAYING
-        ) {
+
+        if (running) {
             return
         }
 
+        running = true
+
         audioTrack.play()
+
+        audioJob =
+            Thread {
+                generateAudio()
+            }.apply {
+                start()
+            }
+    }
+
+    fun setFrequency(
+        frequency: Double
+    ) {
+        targetFrequency =
+            frequency.coerceIn(
+                minFrequency,
+                maxFrequency
+            )
+    }
+
+    private fun generateAudio() {
+
+        val samples =
+            ShortArray(
+                sampleRate / 50
+            )
+
+        val smoothing =
+            0.02
+
+        while (running) {
+
+            val target =
+                targetFrequency
+
+            currentFrequency +=
+                (
+                        target -
+                                currentFrequency
+                        ) *
+                        smoothing
+
+            val phaseStep =
+                2.0 *
+                        PI *
+                        currentFrequency /
+                        sampleRate.toDouble()
+
+            for (index in samples.indices) {
+
+                samples[index] =
+                    (
+                            sin(phase) *
+                                    Short.MAX_VALUE *
+                                    0.15
+                            )
+                        .toInt()
+                        .toShort()
+
+                phase += phaseStep
+
+                if (phase >= 2.0 * PI) {
+                    phase -= 2.0 * PI
+                }
+            }
+
+            audioTrack.write(
+                samples,
+                0,
+                samples.size
+            )
+        }
     }
 
     fun stop() {
+
+        running = false
+
+        audioJob?.interrupt()
+        audioJob = null
+
         if (
             audioTrack.playState ==
             AudioTrack.PLAYSTATE_PLAYING
@@ -79,49 +167,10 @@ class AudioEngine {
         audioTrack.flush()
     }
 
-    fun setFrequency(
-        frequency: Double
-    ) {
-        val safeFrequency =
-            frequency.coerceIn(
-                minFrequency,
-                maxFrequency
-            )
-
-        val samples =
-            ShortArray(
-                sampleRate / 20
-            )
-
-        val phaseStep =
-            2.0 * PI *
-                    safeFrequency /
-                    sampleRate.toDouble()
-
-        for (i in samples.indices) {
-            samples[i] =
-                (
-                        sin(phase) *
-                                Short.MAX_VALUE *
-                                0.15
-                        ).toInt().toShort()
-
-            phase += phaseStep
-
-            if (phase >= 2.0 * PI) {
-                phase -= 2.0 * PI
-            }
-        }
-
-        audioTrack.write(
-            samples,
-            0,
-            samples.size
-        )
-    }
-
     fun release() {
-        audioTrack.stop()
+
+        stop()
+
         audioTrack.release()
     }
 }
