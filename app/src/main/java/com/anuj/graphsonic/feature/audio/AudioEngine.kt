@@ -13,7 +13,9 @@ class AudioEngine {
 
     private val minFrequency = 80.0
     private val maxFrequency = 2000.0
-
+    @Volatile
+    private var waveform =
+        Waveform.Sine
     private val bufferSize =
         AudioTrack.getMinBufferSize(
             sampleRate,
@@ -94,7 +96,11 @@ class AudioEngine {
                 start()
             }
     }
-
+    fun setWaveform(
+        value: Waveform
+    ) {
+        waveform = value
+    }
     fun setFrequency(
         frequency: Double
     ) {
@@ -104,7 +110,50 @@ class AudioEngine {
                 maxFrequency
             )
     }
+    private fun generateSample(
+        phase: Double
+    ): Double {
+        return when (waveform) {
+            Waveform.Sine ->
+                sin(
+                    phase
+                )
 
+            Waveform.Triangle ->
+                1.0 -
+                        4.0 *
+                        kotlin.math.abs(
+                            phase /
+                                    (2.0 * PI) -
+                                    kotlin.math.floor(
+                                        phase /
+                                                (2.0 * PI) +
+                                                0.5
+                                    )
+                        )
+
+            Waveform.Square ->
+                if (
+                    phase < PI
+                ) {
+                    1.0
+                } else {
+                    -1.0
+                }
+
+            Waveform.Saw ->
+                2.0 *
+                        (
+                                phase /
+                                        (2.0 * PI) -
+                                        kotlin.math.floor(
+                                            phase /
+                                                    (2.0 * PI) +
+                                                    0.5
+                                        )
+                                )
+        }
+    }
     private fun generateAudio() {
 
         val samples =
@@ -137,7 +186,7 @@ class AudioEngine {
 
                 samples[index] =
                     (
-                            sin(phase) *
+                            generateSample(phase) *
                                     Short.MAX_VALUE *
                                     volume
                             )

@@ -64,6 +64,8 @@ fun AppNavigation(
 
             val cursor by
             viewModel.cursor.collectAsState()
+            val waveform by
+            viewModel.waveform.collectAsState()
 
             VisualizationScreen(
                 graphData = uiState.graphData,
@@ -72,6 +74,7 @@ fun AppNavigation(
                 frequencyMode = frequencyMode,
                 playbackSpeed = playbackSpeed,
                 volume = volume,
+                waveform = waveform,
                 onCursorChanged =
                     viewModel::updateCursor,
                 evaluateAt =
@@ -87,7 +90,9 @@ fun AppNavigation(
                 onPlaybackSpeedChanged =
                     viewModel::setPlaybackSpeed,
                 onVolumeChanged =
-                    viewModel::setVolume
+                    viewModel::setVolume,
+                onWaveformChanged =
+                    viewModel::setWaveform
             )
         }
     }

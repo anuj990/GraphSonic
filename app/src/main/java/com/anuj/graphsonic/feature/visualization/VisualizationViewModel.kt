@@ -7,6 +7,7 @@ import com.anuj.graphsonic.engine.GraphEngine
 import com.anuj.graphsonic.engine.NativeBridge
 import com.anuj.graphsonic.feature.audio.FrequencyMode
 import com.anuj.graphsonic.feature.audio.ListenController
+import com.anuj.graphsonic.feature.audio.Waveform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,7 +58,13 @@ class VisualizationViewModel : ViewModel() {
             scope = viewModelScope,
             onViewportSettled = ::resampleGraph
         )
+    private val _waveform =
+        MutableStateFlow(
+            Waveform.Sine
+        )
 
+    val waveform: StateFlow<Waveform> =
+        _waveform.asStateFlow()
     private var expressionHandle =
         0L
 
@@ -83,6 +90,15 @@ class VisualizationViewModel : ViewModel() {
 
         listenController.setFrequencyMode(
             mode
+        )
+    }
+    fun setWaveform(
+        waveform: Waveform
+    ) {
+        _waveform.value = waveform
+
+        listenController.setWaveform(
+            waveform
         )
     }
     fun setPlaybackSpeed(

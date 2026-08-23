@@ -15,7 +15,8 @@ class ListenController(
     private val scope: CoroutineScope,
     private val evaluateAt: (Double) -> Double
 ) {
-
+    private var waveform =
+        Waveform.Sine
     private val noteMapper =
         NoteMapper()
     private val audioEngine =
@@ -39,6 +40,10 @@ class ListenController(
     private var endX = 10.0
     private var step = 0.01
     private var playbackSpeed = 1.0
+    init {
+        audioEngine.setVolume(volume)
+        audioEngine.setWaveform(waveform)
+    }
     fun start() {
 
         if (playbackJob?.isActive == true) {
@@ -118,6 +123,12 @@ class ListenController(
                     delay(10L)
                 }
             }
+    }
+    fun setWaveform(
+        value: Waveform
+    ) {
+        waveform = value
+        audioEngine.setWaveform(value)
     }
     fun setFrequencyMode(
         mode: FrequencyMode
