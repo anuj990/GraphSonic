@@ -32,8 +32,7 @@ class VisualizationViewModel : ViewModel() {
     private val listenController =
         ListenController(
             scope = viewModelScope,
-            evaluateAt = ::evaluateAt,
-            isDefinedAt = ::isDefinedAt
+            evaluateAt = ::evaluateAt
         )
 
     private val viewportController =
@@ -96,19 +95,7 @@ class VisualizationViewModel : ViewModel() {
 
     val listenState =
         listenController.state
-    private fun isDefinedAt(
-        x: Double
-    ): Boolean {
 
-        if (expressionHandle == 0L) {
-            return false
-        }
-
-        return graphEngine.isDefined(
-            expressionHandle = expressionHandle,
-            x = x
-        )
-    }
     fun loadExpression(
         expression: String
     ): Boolean {
@@ -144,6 +131,9 @@ class VisualizationViewModel : ViewModel() {
                         xMax = 10.0,
                         sampleCount = 2000
                     )
+                listenController.setGraphData(
+                    graph
+                )
 
                 if (expressionHandle != 0L) {
                     nativeBridge.destroyExpression(
@@ -482,6 +472,10 @@ class VisualizationViewModel : ViewModel() {
                 handle ==
                 expressionHandle
             ) {
+
+                listenController.setGraphData(
+                    graph
+                )
 
                 _uiState.value =
                     _uiState.value.copy(

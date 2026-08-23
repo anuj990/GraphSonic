@@ -1,5 +1,6 @@
 package com.anuj.graphsonic.feature.audio
 
+import com.anuj.graphsonic.domain.model.GraphData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,8 +13,7 @@ import kotlinx.coroutines.launch
 
 class ListenController(
     private val scope: CoroutineScope,
-    private val evaluateAt: (Double) -> Double,
-    private val isDefinedAt: (Double) -> Boolean
+    private val evaluateAt: (Double) -> Double
 ) {
 
     private var waveform =
@@ -57,6 +57,9 @@ class ListenController(
     private var playbackSpeed =
         1.0
 
+    private var segments =
+        emptyList<GraphSegment>()
+
     init {
         audioEngine.setVolume(
             volume
@@ -67,6 +70,15 @@ class ListenController(
         )
     }
 
+    fun setGraphData(
+        graphData: GraphData
+    ) {
+        segments =
+            GraphSegmentExtractor.extract(
+                graphData
+            )
+    }
+
     fun start() {
 
         if (
@@ -75,14 +87,26 @@ class ListenController(
             return
         }
 
-        val firstPoint =
-            findFirstDefinedPoint(
-                startX,
-                endX
+        val usableSegments =
+            getUsableSegments()
+
+        if (
+            usableSegments.isEmpty()
+        ) {
+            _state.value =
+                ListenState()
+
+            return
+        }
+
+        val firstSegmentIndex =
+            findFirstSegmentIndex(
+                usableSegments
             )
 
-        if (firstPoint == null) {
-
+        if (
+            firstSegmentIndex < 0
+        ) {
             _state.value =
                 ListenState()
 
@@ -101,31 +125,45 @@ class ListenController(
                 Dispatchers.Default
             ) {
 
-                var x: Double =
-                    firstPoint
+                var segmentIndex =
+                    firstSegmentIndex
+
+                var segment =
+                    usableSegments[
+                        segmentIndex
+                    ]
+
+                var x =
+                    maxOf(
+                        startX,
+                        segment.startX
+                    )
 
                 while (isActive) {
 
-                    if (!isDefinedAt(x)) {
 
-                        val next =
-                            findNextDefinedPoint(
-                                x
+                    if (
+                        x > segment.endX
+                    ) {
+
+                        segmentIndex =
+                            nextSegmentIndex(
+                                currentIndex =
+                                    segmentIndex,
+                                size =
+                                    usableSegments.size
                             )
 
-                        if (next == null) {
+                        segment =
+                            usableSegments[
+                                segmentIndex
+                            ]
 
-                            x =
-                                findFirstDefinedPoint(
-                                    startX,
-                                    endX
-                                ) ?: break
-
-                        } else {
-
-                            x =
-                                next
-                        }
+                        x =
+                            maxOf(
+                                startX,
+                                segment.startX
+                            )
 
                         continue
                     }
@@ -133,25 +171,43 @@ class ListenController(
                     val y =
                         evaluateAt(x)
 
-                    if (!y.isFinite()) {
+                    if (
+                        !y.isFinite()
+                    ) {
 
-                        val next =
-                            findNextDefinedPoint(
+                        val nextX =
+                            moveForward(
                                 x
                             )
 
-                        if (next == null) {
+                        if (
+                            nextX != null &&
+                            nextX <= segment.endX
+                        ) {
 
                             x =
-                                findFirstDefinedPoint(
-                                    startX,
-                                    endX
-                                ) ?: break
+                                nextX
 
                         } else {
 
+                            segmentIndex =
+                                nextSegmentIndex(
+                                    currentIndex =
+                                        segmentIndex,
+                                    size =
+                                        usableSegments.size
+                                )
+
+                            segment =
+                                usableSegments[
+                                    segmentIndex
+                                ]
+
                             x =
-                                next
+                                maxOf(
+                                    startX,
+                                    segment.startX
+                                )
                         }
 
                         continue
@@ -190,39 +246,105 @@ class ListenController(
                                 )
                         )
 
-                    val next =
-                        moveForward(x)
+                    val nextX =
+                        moveForward(
+                            x
+                        )
 
-                    if (next == null) {
+                    if (
+                        nextX != null &&
+                        nextX <= segment.endX
+                    ) {
 
                         x =
-                            findFirstDefinedPoint(
-                                startX,
-                                endX
-                            ) ?: break
+                            nextX
 
                     } else {
 
+
+                        segmentIndex =
+                            nextSegmentIndex(
+                                currentIndex =
+                                    segmentIndex,
+                                size =
+                                    usableSegments.size
+                            )
+
+                        segment =
+                            usableSegments[
+                                segmentIndex
+                            ]
+
                         x =
-                            next
+                            maxOf(
+                                startX,
+                                segment.startX
+                            )
                     }
 
                     delay(10L)
                 }
-
-                if (isActive) {
-
-                    audioEngine.stop()
-
-                    _state.value =
-                        ListenState(
-                            isPlaying = false
-                        )
-
-                    playbackJob =
-                        null
-                }
             }
+    }
+
+    private fun getUsableSegments():
+            List<GraphSegment> {
+
+        return segments.filter { segment ->
+
+            segment.points.size >= 2 &&
+                    segment.startX.isFinite() &&
+                    segment.endX.isFinite() &&
+                    segment.endX >= segment.startX
+        }
+    }
+
+
+    private fun findFirstSegmentIndex(
+        segments: List<GraphSegment>
+    ): Int {
+
+        if (
+            segments.isEmpty()
+        ) {
+            return -1
+        }
+
+        for (
+        index in segments.indices
+        ) {
+
+            val segment =
+                segments[index]
+
+            val intersectsRange =
+                segment.endX >= startX &&
+                        segment.startX <= endX
+
+            if (
+                intersectsRange
+            ) {
+                return index
+            }
+        }
+
+        return -1
+    }
+
+    private fun nextSegmentIndex(
+        currentIndex: Int,
+        size: Int
+    ): Int {
+
+        if (
+            size <= 1
+        ) {
+            return 0
+        }
+
+        return (
+                currentIndex + 1
+                ) % size
     }
 
     private fun moveForward(
@@ -235,64 +357,12 @@ class ListenController(
                     playbackSpeed
 
         if (
-            !next.isFinite() ||
-            next > endX
+            !next.isFinite()
         ) {
             return null
         }
 
         return next
-    }
-
-    private fun findFirstDefinedPoint(
-        from: Double,
-        to: Double
-    ): Double? {
-
-        if (
-            !from.isFinite() ||
-            !to.isFinite() ||
-            from > to
-        ) {
-            return null
-        }
-
-        var x =
-            from
-
-        while (x <= to) {
-
-            if (isDefinedAt(x)) {
-                return x
-            }
-
-            x += step
-        }
-
-        return null
-    }
-
-    private fun findNextDefinedPoint(
-        currentX: Double
-    ): Double? {
-
-        var x =
-            currentX +
-                    step *
-                    playbackSpeed
-
-        while (x <= endX) {
-
-            if (isDefinedAt(x)) {
-                return x
-            }
-
-            x +=
-                step *
-                        playbackSpeed
-        }
-
-        return null
     }
 
     private fun calculateProgress(
@@ -379,6 +449,19 @@ class ListenController(
             )
     }
 
+    private fun finishPlayback() {
+
+        audioEngine.stop()
+
+        _state.value =
+            ListenState(
+                isPlaying = false
+            )
+
+        playbackJob =
+            null
+    }
+
     fun setRange(
         start: Double,
         end: Double
@@ -403,7 +486,9 @@ class ListenController(
                 end
             )
 
-        if (max <= min) {
+        if (
+            max <= min
+        ) {
             return
         }
 
@@ -430,6 +515,9 @@ class ListenController(
     fun reset() {
 
         stop()
+
+        segments =
+            emptyList()
 
         _state.value =
             ListenState()
