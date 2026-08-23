@@ -15,10 +15,13 @@ class ListenController(
     private val scope: CoroutineScope,
     private val evaluateAt: (Double) -> Double
 ) {
+
     private var waveform =
         Waveform.Sine
+
     private val noteMapper =
         NoteMapper()
+
     private val audioEngine =
         AudioEngine()
 
@@ -29,21 +32,35 @@ class ListenController(
         MutableStateFlow(
             ListenState()
         )
-    private var volume = 0.15
+
     val state: StateFlow<ListenState> =
         _state.asStateFlow()
+
+    private var volume = 0.15
+
     private var frequencyMode =
         FrequencyMode.Continuous
+
     private var playbackJob: Job? = null
 
     private var startX = -10.0
+
     private var endX = 10.0
+
     private var step = 0.01
+
     private var playbackSpeed = 1.0
+
     init {
-        audioEngine.setVolume(volume)
-        audioEngine.setWaveform(waveform)
+        audioEngine.setVolume(
+            volume
+        )
+
+        audioEngine.setWaveform(
+            waveform
+        )
     }
+
     fun start() {
 
         if (playbackJob?.isActive == true) {
@@ -68,6 +85,9 @@ class ListenController(
 
                     val y =
                         evaluateAt(x)
+
+                    val progress =
+                        calculateProgress(x)
 
                     if (y.isFinite()) {
 
@@ -97,14 +117,11 @@ class ListenController(
                                         )
                                     } else {
                                         null
-                                    }
+                                    },
+                                progress = progress
                             )
 
-                        x += step * playbackSpeed
-
                     } else {
-
-                        x += step * playbackSpeed
 
                         _state.value =
                             ListenState(
@@ -112,9 +129,14 @@ class ListenController(
                                 x = x,
                                 y = Double.NaN,
                                 frequency = 0.0,
-                                note = null
+                                note = null,
+                                progress = progress
                             )
                     }
+
+                    x +=
+                        step *
+                                playbackSpeed
 
                     if (x > endX) {
                         x = startX
@@ -124,17 +146,46 @@ class ListenController(
                 }
             }
     }
+
+    private fun calculateProgress(
+        x: Double
+    ): Double {
+
+        val range =
+            endX - startX
+
+        if (
+            !range.isFinite() ||
+            range <= 0.0
+        ) {
+            return 0.0
+        }
+
+        return (
+                (x - startX) /
+                        range
+                ).coerceIn(
+                0.0,
+                1.0
+            )
+    }
+
     fun setWaveform(
         value: Waveform
     ) {
         waveform = value
-        audioEngine.setWaveform(value)
+
+        audioEngine.setWaveform(
+            value
+        )
     }
+
     fun setFrequencyMode(
         mode: FrequencyMode
     ) {
         frequencyMode = mode
     }
+
     fun setPlaybackSpeed(
         speed: Double
     ) {
@@ -144,6 +195,7 @@ class ListenController(
                 4.0
             )
     }
+
     fun setVolume(
         value: Double
     ) {
@@ -157,14 +209,11 @@ class ListenController(
             volume
         )
     }
-    init {
-        audioEngine.setVolume(
-            volume
-        )
-    }
+
     fun stop() {
 
         playbackJob?.cancel()
+
         playbackJob = null
 
         audioEngine.stop()
@@ -179,17 +228,35 @@ class ListenController(
         start: Double,
         end: Double
     ) {
-        startX =
-            minOf(
-                start,
-                end
-            )
+        if (
+            !start.isFinite() ||
+            !end.isFinite()
+        ) {
+            return
+        }
 
-        endX =
-            max(
-                start,
-                end
-            )
+        val min =
+            minOf(start, end)
+
+        val max =
+            maxOf(start, end)
+
+        if (max <= min) {
+            return
+        }
+
+        startX = min
+        endX = max
+
+        if (
+            _state.value.isPlaying &&
+            (
+                    _state.value.x < startX ||
+                            _state.value.x > endX
+                    )
+        ) {
+            stop()
+        }
     }
 
     fun setStep(
@@ -211,4 +278,5 @@ class ListenController(
         stop()
         audioEngine.release()
     }
+
 }

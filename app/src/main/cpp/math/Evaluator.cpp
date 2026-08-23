@@ -1,13 +1,28 @@
 #include "Evaluator.h"
 
 #include <cmath>
-#include <stdexcept>
 #include <limits>
+#include <stdexcept>
+
+namespace {
+
+    double nanValue() {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    bool nearZero(
+            double value
+    ) {
+        return std::abs(value) < 1e-12;
+    }
+
+}
 
 double Evaluator::evaluate(
         const ASTNode& node,
         double x
 ) {
+
     switch (node.type) {
 
         case NodeType::Number:
@@ -16,15 +31,48 @@ double Evaluator::evaluate(
         case NodeType::Variable:
             return x;
 
-        case NodeType::Unary:
-            return -evaluate(*node.right, x);
+        case NodeType::Unary: {
+
+            const double value =
+                    evaluate(
+                            *node.right,
+                            x
+                    );
+
+            if (!std::isfinite(value)) {
+                return nanValue();
+            }
+
+            switch (node.op) {
+
+                case OperatorType::Minus:
+                    return -value;
+
+                default:
+                    return nanValue();
+            }
+        }
 
         case NodeType::Binary: {
+
             const double left =
-                    evaluate(*node.left, x);
+                    evaluate(
+                            *node.left,
+                            x
+                    );
 
             const double right =
-                    evaluate(*node.right, x);
+                    evaluate(
+                            *node.right,
+                            x
+                    );
+
+            if (
+                    !std::isfinite(left) ||
+                    !std::isfinite(right)
+                    ) {
+                return nanValue();
+            }
 
             switch (node.op) {
 
@@ -38,20 +86,43 @@ double Evaluator::evaluate(
                     return left * right;
 
                 case OperatorType::Divide:
-                    if (right == 0.0) {
-                        return std::numeric_limits<double>::quiet_NaN();
+
+                    if (nearZero(right)) {
+                        return nanValue();
                     }
 
                     return left / right;
 
-                case OperatorType::Power:
-                    return std::pow(left, right);
+                case OperatorType::Power: {
+
+                    const double result =
+                            std::pow(
+                                    left,
+                                    right
+                            );
+
+                    if (!std::isfinite(result)) {
+                        return nanValue();
+                    }
+
+                    return result;
+                }
             }
+
+            return nanValue();
         }
 
         case NodeType::Function: {
+
             const double argument =
-                    evaluate(*node.left, x);
+                    evaluate(
+                            *node.left,
+                            x
+                    );
+
+            if (!std::isfinite(argument)) {
+                return nanValue();
+            }
 
             return evaluateFunction(
                     node,
@@ -60,46 +131,139 @@ double Evaluator::evaluate(
         }
     }
 
-    return std::numeric_limits<double>::quiet_NaN();
+    return nanValue();
 }
 
 double Evaluator::evaluateFunction(
         const ASTNode& node,
         double argument
 ) {
-    if (node.functionName == "sin") {
-        return std::sin(argument);
+
+    const std::string& name =
+            node.functionName;
+
+    if (name == "sin") {
+
+        return std::sin(
+                argument
+        );
     }
 
-    if (node.functionName == "cos") {
-        return std::cos(argument);
+    if (name == "cos") {
+
+        return std::cos(
+                argument
+        );
     }
 
-    if (node.functionName == "tan") {
-        return std::tan(argument);
+    if (name == "tan") {
+
+        const double cosine =
+                std::cos(argument);
+
+        if (nearZero(cosine)) {
+            return nanValue();
+        }
+
+        return std::sin(argument) /
+               cosine;
     }
 
-    if (node.functionName == "sqrt") {
-        return std::sqrt(argument);
+    if (name == "cot") {
+
+        const double sine =
+                std::sin(argument);
+
+        if (nearZero(sine)) {
+            return nanValue();
+        }
+
+        return std::cos(argument) /
+               sine;
     }
 
-    if (node.functionName == "log") {
-        return std::log10(argument);
+    if (name == "sec") {
+
+        const double cosine =
+                std::cos(argument);
+
+        if (nearZero(cosine)) {
+            return nanValue();
+        }
+
+        return 1.0 /
+               cosine;
     }
 
-    if (node.functionName == "ln") {
-        return std::log(argument);
+    if (name == "csc") {
+
+        const double sine =
+                std::sin(argument);
+
+        if (nearZero(sine)) {
+            return nanValue();
+        }
+
+        return 1.0 /
+               sine;
     }
 
-    if (node.functionName == "abs") {
-        return std::abs(argument);
+    if (name == "sqrt") {
+
+        if (argument < 0.0) {
+            return nanValue();
+        }
+
+        return std::sqrt(
+                argument
+        );
     }
 
-    if (node.functionName == "exp") {
-        return std::exp(argument);
+    if (name == "log") {
+
+        if (argument <= 0.0) {
+            return nanValue();
+        }
+
+        return std::log10(
+                argument
+        );
+    }
+
+    if (name == "ln") {
+
+        if (argument <= 0.0) {
+            return nanValue();
+        }
+
+        return std::log(
+                argument
+        );
+    }
+
+    if (name == "abs") {
+
+        return std::abs(
+                argument
+        );
+    }
+
+    if (name == "exp") {
+
+        const double result =
+                std::exp(
+                        argument
+                );
+
+        if (!std::isfinite(result)) {
+            return nanValue();
+        }
+
+        return result;
     }
 
     throw std::runtime_error(
-            "Unknown function: " + node.functionName
+            "Unknown function: " +
+            name
     );
 }

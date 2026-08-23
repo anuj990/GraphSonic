@@ -20,52 +20,31 @@ data class VisualizationUiState(
     val errorMessage: String? = null,
     val isListening: Boolean = false
 )
+
 class VisualizationViewModel : ViewModel() {
+
+    private val nativeBridge =
+        NativeBridge()
+
+    private val graphEngine =
+        GraphEngine(nativeBridge)
+
     private val listenController =
         ListenController(
             scope = viewModelScope,
             evaluateAt = ::evaluateAt
         )
-    private val _frequencyMode =
-        MutableStateFlow(
-            FrequencyMode.Continuous
-        )
-    private val _volume =
-        MutableStateFlow(0.15)
-
-    val volume: StateFlow<Double> =
-        _volume.asStateFlow()
-    val frequencyMode:
-            StateFlow<FrequencyMode> =
-        _frequencyMode.asStateFlow()
-
-    private val _playbackSpeed =
-        MutableStateFlow(1.0)
-
-    val playbackSpeed:
-            StateFlow<Double> =
-        _playbackSpeed.asStateFlow()
-    val listenState =
-        listenController.state
-    private val nativeBridge =
-        NativeBridge()
-    private var samplingGeneration = 0L
-    private val graphEngine =
-        GraphEngine(nativeBridge)
 
     private val viewportController =
         GraphViewportController(
             scope = viewModelScope,
             onViewportSettled = ::resampleGraph
         )
-    private val _waveform =
-        MutableStateFlow(
-            Waveform.Sine
-        )
 
-    val waveform: StateFlow<Waveform> =
-        _waveform.asStateFlow()
     private var expressionHandle =
+        0L
+
+    private var samplingGeneration =
         0L
 
     private val _uiState =
@@ -83,60 +62,46 @@ class VisualizationViewModel : ViewModel() {
 
     val cursor: StateFlow<GraphCursorState> =
         _cursor.asStateFlow()
-    fun setFrequencyMode(
-        mode: FrequencyMode
-    ) {
-        _frequencyMode.value = mode
 
-        listenController.setFrequencyMode(
-            mode
+    private val _frequencyMode =
+        MutableStateFlow(
+            FrequencyMode.Continuous
         )
-    }
-    fun setWaveform(
-        waveform: Waveform
-    ) {
-        _waveform.value = waveform
 
-        listenController.setWaveform(
-            waveform
+    val frequencyMode:
+            StateFlow<FrequencyMode> =
+        _frequencyMode.asStateFlow()
+
+    private val _waveform =
+        MutableStateFlow(
+            Waveform.Sine
         )
-    }
-    fun setPlaybackSpeed(
-        speed: Double
-    ) {
-        val safeSpeed =
-            speed.coerceIn(
-                0.25,
-                4.0
-            )
 
-        _playbackSpeed.value =
-            safeSpeed
+    val waveform: StateFlow<Waveform> =
+        _waveform.asStateFlow()
 
-        listenController.setPlaybackSpeed(
-            safeSpeed
-        )
-    }
-    fun setVolume(
-        value: Double
-    ) {
-        val safeVolume =
-            value.coerceIn(
-                0.0,
-                1.0
-            )
+    private val _playbackSpeed =
+        MutableStateFlow(1.0)
 
-        _volume.value =
-            safeVolume
+    val playbackSpeed:
+            StateFlow<Double> =
+        _playbackSpeed.asStateFlow()
 
-        listenController.setVolume(
-            safeVolume
-        )
-    }
+    private val _volume =
+        MutableStateFlow(0.15)
+
+    val volume: StateFlow<Double> =
+        _volume.asStateFlow()
+
+    val listenState =
+        listenController.state
+
     fun loadExpression(
         expression: String
     ): Boolean {
+
         samplingGeneration += 1L
+
         return try {
 
             val newHandle =
@@ -148,9 +113,10 @@ class VisualizationViewModel : ViewModel() {
 
                 _uiState.value =
                     _uiState.value.copy(
+                        isLoading = false,
                         errorMessage =
                             "Equation is invalid",
-                        isLoading = false
+                        isListening = false
                     )
 
                 false
@@ -172,9 +138,16 @@ class VisualizationViewModel : ViewModel() {
                     )
                 }
 
+                listenController.stop()
+
                 expressionHandle =
                     newHandle
-                listenController.reset()
+
+                listenController.setRange(
+                    start = -10.0,
+                    end = 10.0
+                )
+
                 _uiState.value =
                     VisualizationUiState(
                         graphData = graph,
@@ -197,7 +170,8 @@ class VisualizationViewModel : ViewModel() {
                 _uiState.value.copy(
                     isLoading = false,
                     errorMessage =
-                        "Equation is invalid"
+                        "Equation is invalid",
+                    isListening = false
                 )
 
             false
@@ -210,7 +184,8 @@ class VisualizationViewModel : ViewModel() {
                 _uiState.value.copy(
                     isLoading = false,
                     errorMessage =
-                        "Equation is invalid"
+                        "Equation is invalid",
+                    isListening = false
                 )
 
             false
@@ -218,6 +193,7 @@ class VisualizationViewModel : ViewModel() {
     }
 
     fun clearError() {
+
         if (
             _uiState.value.errorMessage != null
         ) {
@@ -231,6 +207,7 @@ class VisualizationViewModel : ViewModel() {
     fun evaluateAt(
         x: Double
     ): Double {
+
         if (expressionHandle == 0L) {
             return Double.NaN
         }
@@ -247,28 +224,72 @@ class VisualizationViewModel : ViewModel() {
         _cursor.value = cursor
     }
 
+    fun setFrequencyMode(
+        mode: FrequencyMode
+    ) {
+        _frequencyMode.value =
+            mode
+
+        listenController.setFrequencyMode(
+            mode
+        )
+    }
+
+    fun setWaveform(
+        waveform: Waveform
+    ) {
+        _waveform.value =
+            waveform
+
+        listenController.setWaveform(
+            waveform
+        )
+    }
+
+    fun setPlaybackSpeed(
+        speed: Double
+    ) {
+
+        val safeSpeed =
+            speed.coerceIn(
+                0.25,
+                4.0
+            )
+
+        _playbackSpeed.value =
+            safeSpeed
+
+        listenController.setPlaybackSpeed(
+            safeSpeed
+        )
+    }
+
+    fun setVolume(
+        value: Double
+    ) {
+
+        val safeVolume =
+            value.coerceIn(
+                0.0,
+                1.0
+            )
+
+        _volume.value =
+            safeVolume
+
+        listenController.setVolume(
+            safeVolume
+        )
+    }
+
     fun onViewportChanged(
         viewport: GraphViewport,
         screenWidth: Float
     ) {
-        val halfWidth =
-            screenWidth.toDouble() /
-                    (
-                            2.0 *
-                                    viewport.scale.toDouble()
-                            )
 
-        val startX =
-            viewport.centerX.toDouble() -
-                    halfWidth
-
-        val endX =
-            viewport.centerX.toDouble() +
-                    halfWidth
-
-        listenController.setRange(
-            start = startX,
-            end = endX
+        updateListenRange(
+            viewport = viewport,
+            screenWidth = screenWidth
         )
 
         viewportController.onViewportChanged(
@@ -276,7 +297,72 @@ class VisualizationViewModel : ViewModel() {
             screenWidth = screenWidth
         )
     }
+
+    private fun updateListenRange(
+        viewport: GraphViewport,
+        screenWidth: Float
+    ) {
+
+        if (
+            !screenWidth.isFinite() ||
+            screenWidth <= 0f
+        ) {
+            return
+        }
+
+        if (
+            !viewport.scale.isFinite() ||
+            viewport.scale <= 0.0
+        ) {
+            return
+        }
+
+        val halfWidth =
+            screenWidth.toDouble() /
+                    (
+                            2.0 *
+                                    viewport.scale
+                            )
+
+        val xMin =
+            viewport.centerX -
+                    halfWidth
+
+        val xMax =
+            viewport.centerX +
+                    halfWidth
+
+        if (
+            !xMin.isFinite() ||
+            !xMax.isFinite() ||
+            xMax <= xMin
+        ) {
+            return
+        }
+
+        listenController.setRange(
+            start = xMin,
+            end = xMax
+        )
+    }
+
+    fun updateListenRange(
+        startX: Double,
+        endX: Double
+    ) {
+
+        listenController.setRange(
+            start = startX,
+            end = endX
+        )
+    }
+
     fun startListening() {
+
+        if (expressionHandle == 0L) {
+            return
+        }
+
         listenController.start()
 
         _uiState.value =
@@ -286,6 +372,7 @@ class VisualizationViewModel : ViewModel() {
     }
 
     fun stopListening() {
+
         listenController.stop()
 
         _uiState.value =
@@ -293,24 +380,32 @@ class VisualizationViewModel : ViewModel() {
                 isListening = false
             )
     }
-    fun updateListenRange(
-        startX: Double,
-        endX: Double
-    ) {
-        listenController.setRange(
-            start = startX,
-            end = endX
-        )
-    }
+
     private fun resampleGraph(
         viewport: GraphViewport,
         screenWidth: Float
     ) {
+
         if (expressionHandle == 0L) {
             return
         }
 
-        val handle = expressionHandle
+        if (
+            !screenWidth.isFinite() ||
+            screenWidth <= 0f
+        ) {
+            return
+        }
+
+        if (
+            !viewport.scale.isFinite() ||
+            viewport.scale <= 0.0
+        ) {
+            return
+        }
+
+        val handle =
+            expressionHandle
 
         samplingGeneration += 1L
 
@@ -321,19 +416,30 @@ class VisualizationViewModel : ViewModel() {
             screenWidth.toDouble() /
                     (
                             2.0 *
-                                    viewport.scale.toDouble()
+                                    viewport.scale
                             )
 
         val xMin =
-            viewport.centerX.toDouble() -
+            viewport.centerX -
                     halfWidth
 
         val xMax =
-            viewport.centerX.toDouble() +
+            viewport.centerX +
                     halfWidth
 
+        if (
+            !xMin.isFinite() ||
+            !xMax.isFinite() ||
+            xMax <= xMin
+        ) {
+            return
+        }
+
         val sampleCount =
-            ((xMax - xMin) * 100.0)
+            (
+                    (xMax - xMin) *
+                            100.0
+                    )
                 .toInt()
                 .coerceIn(
                     1000,
@@ -348,6 +454,7 @@ class VisualizationViewModel : ViewModel() {
         viewModelScope.launch(
             Dispatchers.Default
         ) {
+
             val graph =
                 graphEngine.generateGraph(
                     expressionHandle = handle,
@@ -362,6 +469,7 @@ class VisualizationViewModel : ViewModel() {
                 handle ==
                 expressionHandle
             ) {
+
                 _uiState.value =
                     _uiState.value.copy(
                         graphData = graph,
@@ -380,6 +488,7 @@ class VisualizationViewModel : ViewModel() {
         listenController.release()
 
         if (expressionHandle != 0L) {
+
             nativeBridge.destroyExpression(
                 expressionHandle
             )
@@ -389,5 +498,4 @@ class VisualizationViewModel : ViewModel() {
 
         super.onCleared()
     }
-
 }

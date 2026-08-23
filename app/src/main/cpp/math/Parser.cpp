@@ -2,23 +2,39 @@
 
 #include <stdexcept>
 
-Parser::Parser(const std::vector<Token>& tokens)
+Parser::Parser(
+        const std::vector<Token>& tokens
+)
         : tokens(tokens) {}
 
 const Token& Parser::current() const {
+
+    if (position >= tokens.size()) {
+        throw std::runtime_error(
+                "Unexpected end of expression"
+        );
+    }
+
     return tokens[position];
 }
 
-bool Parser::check(TokenType type) const {
+bool Parser::check(
+        TokenType type
+) const {
+
     return current().type == type;
 }
 
-bool Parser::match(TokenType type) {
+bool Parser::match(
+        TokenType type
+) {
+
     if (!check(type)) {
         return false;
     }
 
     position++;
+
     return true;
 }
 
@@ -26,15 +42,21 @@ const Token& Parser::consume(
         TokenType type,
         const char* message
 ) {
+
     if (!check(type)) {
-        throw std::runtime_error(message);
+        throw std::runtime_error(
+                message
+        );
     }
 
     return tokens[position++];
 }
 
-std::unique_ptr<ASTNode> Parser::parse() {
-    auto result = parseExpression();
+std::unique_ptr<ASTNode>
+Parser::parse() {
+
+    auto result =
+            parseExpression();
 
     if (!check(TokenType::End)) {
         throw std::runtime_error(
@@ -45,89 +67,156 @@ std::unique_ptr<ASTNode> Parser::parse() {
     return result;
 }
 
-std::unique_ptr<ASTNode> Parser::parseExpression() {
-    auto node = parseTerm();
+std::unique_ptr<ASTNode>
+Parser::parseExpression() {
 
-    while (check(TokenType::Plus) ||
-           check(TokenType::Minus)) {
+    auto node =
+            parseTerm();
 
-        const TokenType operation = current().type;
+    while (
+            check(TokenType::Plus) ||
+            check(TokenType::Minus)
+            ) {
+
+        const TokenType operation =
+                current().type;
+
         position++;
 
-        auto right = parseTerm();
+        auto right =
+                parseTerm();
 
         auto parent =
-                std::make_unique<ASTNode>(NodeType::Binary);
+                std::make_unique<ASTNode>(
+                        NodeType::Binary
+                );
 
         parent->op =
-                operation == TokenType::Plus
+                operation ==
+                TokenType::Plus
                 ? OperatorType::Plus
                 : OperatorType::Minus;
 
-        parent->left = std::move(node);
-        parent->right = std::move(right);
+        parent->left =
+                std::move(node);
 
-        node = std::move(parent);
+        parent->right =
+                std::move(right);
+
+        node =
+                std::move(parent);
     }
 
     return node;
 }
 
-std::unique_ptr<ASTNode> Parser::parseTerm() {
-    auto node = parseUnary();
+std::unique_ptr<ASTNode>
+Parser::parseTerm() {
 
-    while (check(TokenType::Multiply) ||
-           check(TokenType::Divide)) {
+    auto node =
+            parseUnary();
 
-        const TokenType operation = current().type;
-        position++;
+    while (true) {
 
-        auto right = parseUnary();
+        if (
+                check(TokenType::Multiply) ||
+                check(TokenType::Divide)
+                ) {
 
-        auto parent =
-                std::make_unique<ASTNode>(NodeType::Binary);
+            const TokenType operation =
+                    current().type;
 
-        parent->op =
-                operation == TokenType::Multiply
-                ? OperatorType::Multiply
-                : OperatorType::Divide;
+            position++;
 
-        parent->left = std::move(node);
-        parent->right = std::move(right);
+            auto right =
+                    parseUnary();
 
-        node = std::move(parent);
+            auto parent =
+                    std::make_unique<ASTNode>(
+                            NodeType::Binary
+                    );
+
+            parent->op =
+                    operation ==
+                    TokenType::Multiply
+                    ? OperatorType::Multiply
+                    : OperatorType::Divide;
+
+            parent->left =
+                    std::move(node);
+
+            parent->right =
+                    std::move(right);
+
+            node =
+                    std::move(parent);
+
+            continue;
+        }
+
+        if (
+                startsImplicitMultiplication()
+                ) {
+
+            auto right =
+                    parseUnary();
+
+            auto parent =
+                    std::make_unique<ASTNode>(
+                            NodeType::Binary
+                    );
+
+            parent->op =
+                    OperatorType::Multiply;
+
+            parent->left =
+                    std::move(node);
+
+            parent->right =
+                    std::move(right);
+
+            node =
+                    std::move(parent);
+
+            continue;
+        }
+
+        break;
     }
 
     return node;
 }
 
-std::unique_ptr<ASTNode> Parser::parsePower() {
-    auto node = parsePrimary();
+bool Parser::startsImplicitMultiplication() const {
 
-    if (match(TokenType::Power)) {
-        auto right = parseUnary();
+    switch (current().type) {
 
-        auto parent =
-                std::make_unique<ASTNode>(NodeType::Binary);
+        case TokenType::Number:
+        case TokenType::Variable:
+        case TokenType::Function:
+        case TokenType::LeftParen:
+            return true;
 
-        parent->op = OperatorType::Power;
-
-        parent->left = std::move(node);
-        parent->right = std::move(right);
-
-        return parent;
+        default:
+            return false;
     }
-
-    return node;
 }
 
-std::unique_ptr<ASTNode> Parser::parseUnary() {
+std::unique_ptr<ASTNode>
+Parser::parseUnary() {
+
     if (match(TokenType::Minus)) {
-        auto node =
-                std::make_unique<ASTNode>(NodeType::Unary);
 
-        node->op = OperatorType::Minus;
-        node->right = parseUnary();
+        auto node =
+                std::make_unique<ASTNode>(
+                        NodeType::Unary
+                );
+
+        node->op =
+                OperatorType::Minus;
+
+        node->right =
+                parseUnary();
 
         return node;
     }
@@ -139,26 +228,69 @@ std::unique_ptr<ASTNode> Parser::parseUnary() {
     return parsePower();
 }
 
-std::unique_ptr<ASTNode> Parser::parsePrimary() {
+std::unique_ptr<ASTNode>
+Parser::parsePower() {
+
+    auto node =
+            parsePrimary();
+
+    if (match(TokenType::Power)) {
+
+        auto right =
+                parseUnary();
+
+        auto parent =
+                std::make_unique<ASTNode>(
+                        NodeType::Binary
+                );
+
+        parent->op =
+                OperatorType::Power;
+
+        parent->left =
+                std::move(node);
+
+        parent->right =
+                std::move(right);
+
+        return parent;
+    }
+
+    return node;
+}
+
+std::unique_ptr<ASTNode>
+Parser::parsePrimary() {
+
     if (check(TokenType::Number)) {
-        const double value = current().value;
+
+        const double value =
+                current().value;
+
         position++;
 
         auto node =
-                std::make_unique<ASTNode>(NodeType::Number);
+                std::make_unique<ASTNode>(
+                        NodeType::Number
+                );
 
-        node->value = value;
+        node->value =
+                value;
 
         return node;
     }
 
     if (check(TokenType::Variable)) {
+
         position++;
 
-        return std::make_unique<ASTNode>(NodeType::Variable);
+        return std::make_unique<ASTNode>(
+                NodeType::Variable
+        );
     }
 
     if (check(TokenType::Function)) {
+
         const std::string functionName =
                 current().text;
 
@@ -169,7 +301,8 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
                 "Expected '(' after function"
         );
 
-        auto argument = parseExpression();
+        auto argument =
+                parseExpression();
 
         consume(
                 TokenType::RightParen,
@@ -177,16 +310,25 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         );
 
         auto node =
-                std::make_unique<ASTNode>(NodeType::Function);
+                std::make_unique<ASTNode>(
+                        NodeType::Function
+                );
 
-        node->functionName = functionName;
-        node->left = std::move(argument);
+        node->functionName =
+                functionName;
+
+        node->left =
+                std::move(argument);
 
         return node;
     }
 
-    if (match(TokenType::LeftParen)) {
-        auto node = parseExpression();
+    if (
+            match(TokenType::LeftParen)
+            ) {
+
+        auto node =
+                parseExpression();
 
         consume(
                 TokenType::RightParen,

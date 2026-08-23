@@ -4,16 +4,25 @@
 #include "Lexer.h"
 #include "Parser.h"
 
-Expression::Expression(const std::string& expression) {
+Expression::Expression(
+        const std::string& expression
+) {
     Lexer lexer(expression);
 
-    const auto tokens = lexer.tokenize();
+    const auto tokens =
+            lexer.tokenize();
 
     Parser parser(tokens);
 
-    root = parser.parse();
+    root =
+            parser.parse();
 }
 
-double Expression::evaluate(double x) const {
-    return Evaluator::evaluate(*root, x);
+double Expression::evaluate(
+        double x
+) const {
+    return Evaluator::evaluate(
+            *root,
+            x
+    );
 }

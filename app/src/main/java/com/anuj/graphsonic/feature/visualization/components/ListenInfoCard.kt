@@ -3,6 +3,7 @@ package com.anuj.graphsonic.feature.visualization.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,13 +28,17 @@ fun ListenInfoCard(
         ) {
             Text(
                 text = "x = ${
-                    formatValue(listenState.x)
+                    formatValue(
+                        listenState.x
+                    )
                 }"
             )
 
             Text(
                 text = "y = ${
-                    formatValue(listenState.y)
+                    formatValue(
+                        listenState.y
+                    )
                 }"
             )
 
@@ -51,6 +56,27 @@ fun ListenInfoCard(
                         "Note = ${note.name}${note.octave}"
                 )
             }
+
+            Text(
+                text =
+                    "Progress = ${
+                        (
+                                listenState.progress *
+                                        100.0
+                                ).toInt()
+                    }%"
+            )
+
+            LinearProgressIndicator(
+                progress = {
+                    listenState.progress
+                        .toFloat()
+                        .coerceIn(
+                            0f,
+                            1f
+                        )
+                }
+            )
         }
     }
 }
