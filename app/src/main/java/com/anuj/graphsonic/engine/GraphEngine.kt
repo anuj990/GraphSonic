@@ -43,7 +43,10 @@ class GraphEngine(
 
                 var index = 0
 
-                while (index + 1 < rawPoints.size) {
+                while (
+                    index + 1 <
+                    rawPoints.size
+                ) {
 
                     add(
                         GraphPoint(
@@ -64,6 +67,16 @@ class GraphEngine(
         x: Double
     ): Double {
         return nativeBridge.evaluateExpression(
+            handle = expressionHandle,
+            x = x
+        )
+    }
+
+    fun isDefined(
+        expressionHandle: Long,
+        x: Double
+    ): Boolean {
+        return nativeBridge.isDefined(
             handle = expressionHandle,
             x = x
         )

@@ -17,6 +17,11 @@ class NativeBridge {
         x: Double
     ): Double
 
+    external fun isDefined(
+        handle: Long,
+        x: Double
+    ): Boolean
+
     external fun generateGraph(
         handle: Long,
         xMin: Double,

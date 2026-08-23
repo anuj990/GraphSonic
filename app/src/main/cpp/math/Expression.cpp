@@ -4,6 +4,8 @@
 #include "Lexer.h"
 #include "Parser.h"
 
+#include <cmath>
+
 Expression::Expression(
         const std::string& expression
 ) {
@@ -25,4 +27,17 @@ double Expression::evaluate(
             *root,
             x
     );
+}
+
+bool Expression::isDefined(
+        double x
+) const {
+    if (!std::isfinite(x)) {
+        return false;
+    }
+
+    const double result =
+            evaluate(x);
+
+    return std::isfinite(result);
 }

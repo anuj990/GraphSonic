@@ -207,7 +207,63 @@ double Evaluator::evaluateFunction(
         return 1.0 /
                sine;
     }
+    if (name == "asin") {
 
+        if (
+                argument < -1.0 ||
+                argument > 1.0
+                ) {
+            return nanValue();
+        }
+
+        return std::asin(argument);
+    }
+
+    if (name == "acos") {
+
+        if (
+                argument < -1.0 ||
+                argument > 1.0
+                ) {
+            return nanValue();
+        }
+
+        return std::acos(argument);
+    }
+
+    if (name == "atan") {
+
+        return std::atan(argument);
+    }
+
+    if (name == "sinh") {
+
+        const double result =
+                std::sinh(argument);
+
+        if (!std::isfinite(result)) {
+            return nanValue();
+        }
+
+        return result;
+    }
+
+    if (name == "cosh") {
+
+        const double result =
+                std::cosh(argument);
+
+        if (!std::isfinite(result)) {
+            return nanValue();
+        }
+
+        return result;
+    }
+
+    if (name == "tanh") {
+
+        return std::tanh(argument);
+    }
     if (name == "sqrt") {
 
         if (argument < 0.0) {

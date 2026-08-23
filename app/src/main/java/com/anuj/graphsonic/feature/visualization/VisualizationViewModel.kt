@@ -32,7 +32,8 @@ class VisualizationViewModel : ViewModel() {
     private val listenController =
         ListenController(
             scope = viewModelScope,
-            evaluateAt = ::evaluateAt
+            evaluateAt = ::evaluateAt,
+            isDefinedAt = ::isDefinedAt
         )
 
     private val viewportController =
@@ -95,7 +96,19 @@ class VisualizationViewModel : ViewModel() {
 
     val listenState =
         listenController.state
+    private fun isDefinedAt(
+        x: Double
+    ): Boolean {
 
+        if (expressionHandle == 0L) {
+            return false
+        }
+
+        return graphEngine.isDefined(
+            expressionHandle = expressionHandle,
+            x = x
+        )
+    }
     fun loadExpression(
         expression: String
     ): Boolean {

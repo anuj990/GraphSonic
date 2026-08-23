@@ -11,13 +11,32 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
         jobject,
         jstring expression
 ) {
+    if (expression == nullptr) {
+        jclass exceptionClass =
+                env->FindClass(
+                        "java/lang/IllegalArgumentException"
+                );
+
+        env->ThrowNew(
+                exceptionClass,
+                "Expression cannot be null"
+        );
+
+        return 0;
+    }
+
     const char* chars =
             env->GetStringUTFChars(
                     expression,
                     nullptr
             );
 
+    if (chars == nullptr) {
+        return 0;
+    }
+
     try {
+
         auto* nativeExpression =
                 new Expression(chars);
 
@@ -30,7 +49,9 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
                 nativeExpression
         );
 
-    } catch (const std::exception& exception) {
+    } catch (
+            const std::exception& exception
+    ) {
 
         env->ReleaseStringUTFChars(
                 expression,
@@ -70,12 +91,36 @@ Java_com_anuj_graphsonic_engine_NativeBridge_evaluateExpression(
 }
 
 extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_anuj_graphsonic_engine_NativeBridge_isDefined(
+        JNIEnv*,
+        jobject,
+        jlong handle,
+        jdouble x
+) {
+    if (handle == 0) {
+        return JNI_FALSE;
+    }
+
+    auto* expression =
+            reinterpret_cast<Expression*>(handle);
+
+    return expression->isDefined(x)
+           ? JNI_TRUE
+           : JNI_FALSE;
+}
+
+extern "C"
 JNIEXPORT void JNICALL
 Java_com_anuj_graphsonic_engine_NativeBridge_destroyExpression(
         JNIEnv*,
         jobject,
         jlong handle
 ) {
+    if (handle == 0) {
+        return;
+    }
+
     auto* expression =
             reinterpret_cast<Expression*>(handle);
 

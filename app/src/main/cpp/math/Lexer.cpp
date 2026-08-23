@@ -212,6 +212,12 @@ Token Lexer::readIdentifier() {
             identifier == "cot" ||
             identifier == "sec" ||
             identifier == "csc" ||
+            identifier == "asin" ||
+            identifier == "acos" ||
+            identifier == "atan" ||
+            identifier == "sinh" ||
+            identifier == "cosh" ||
+            identifier == "tanh" ||
             identifier == "sqrt" ||
             identifier == "log" ||
             identifier == "ln" ||
