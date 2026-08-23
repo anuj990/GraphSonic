@@ -15,6 +15,7 @@ class ListenController(
     private val scope: CoroutineScope,
     private val evaluateAt: (Double) -> Double
 ) {
+
     private val noteMapper =
         NoteMapper()
     private val audioEngine =
@@ -27,7 +28,7 @@ class ListenController(
         MutableStateFlow(
             ListenState()
         )
-
+    private var volume = 0.15
     val state: StateFlow<ListenState> =
         _state.asStateFlow()
     private var frequencyMode =
@@ -131,6 +132,24 @@ class ListenController(
                 0.25,
                 4.0
             )
+    }
+    fun setVolume(
+        value: Double
+    ) {
+        volume =
+            value.coerceIn(
+                0.0,
+                1.0
+            )
+
+        audioEngine.setVolume(
+            volume
+        )
+    }
+    init {
+        audioEngine.setVolume(
+            volume
+        )
     }
     fun stop() {
 

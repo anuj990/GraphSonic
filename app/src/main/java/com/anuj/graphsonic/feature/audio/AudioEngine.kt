@@ -7,7 +7,8 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 class AudioEngine {
-
+    @Volatile
+    private var volume = 0.15
     private val sampleRate = 44100
 
     private val minFrequency = 80.0
@@ -21,7 +22,15 @@ class AudioEngine {
         ).coerceAtLeast(
             sampleRate / 10
         )
-
+    fun setVolume(
+        value: Double
+    ) {
+        volume =
+            value.coerceIn(
+                0.0,
+                1.0
+            )
+    }
     private val audioTrack =
         AudioTrack.Builder()
             .setAudioAttributes(
@@ -130,7 +139,7 @@ class AudioEngine {
                     (
                             sin(phase) *
                                     Short.MAX_VALUE *
-                                    0.15
+                                    volume
                             )
                         .toInt()
                         .toShort()

@@ -15,6 +15,8 @@ fun AppNavigation(
     navController: NavHostController,
     viewModel: VisualizationViewModel
 ) {
+    val volume by
+    viewModel.volume.collectAsState()
     val frequencyMode by
     viewModel.frequencyMode.collectAsState()
 
@@ -64,16 +66,12 @@ fun AppNavigation(
             viewModel.cursor.collectAsState()
 
             VisualizationScreen(
-                graphData =
-                    uiState.graphData,
-                cursor =
-                    cursor,
-                listenState =
-                    listenState,
-                frequencyMode =
-                    frequencyMode,
-                playbackSpeed =
-                    playbackSpeed,
+                graphData = uiState.graphData,
+                cursor = cursor,
+                listenState = listenState,
+                frequencyMode = frequencyMode,
+                playbackSpeed = playbackSpeed,
+                volume = volume,
                 onCursorChanged =
                     viewModel::updateCursor,
                 evaluateAt =
@@ -87,7 +85,9 @@ fun AppNavigation(
                 onFrequencyModeChanged =
                     viewModel::setFrequencyMode,
                 onPlaybackSpeedChanged =
-                    viewModel::setPlaybackSpeed
+                    viewModel::setPlaybackSpeed,
+                onVolumeChanged =
+                    viewModel::setVolume
             )
         }
     }

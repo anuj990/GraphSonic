@@ -29,7 +29,11 @@ class VisualizationViewModel : ViewModel() {
         MutableStateFlow(
             FrequencyMode.Continuous
         )
+    private val _volume =
+        MutableStateFlow(0.15)
 
+    val volume: StateFlow<Double> =
+        _volume.asStateFlow()
     val frequencyMode:
             StateFlow<FrequencyMode> =
         _frequencyMode.asStateFlow()
@@ -95,6 +99,22 @@ class VisualizationViewModel : ViewModel() {
 
         listenController.setPlaybackSpeed(
             safeSpeed
+        )
+    }
+    fun setVolume(
+        value: Double
+    ) {
+        val safeVolume =
+            value.coerceIn(
+                0.0,
+                1.0
+            )
+
+        _volume.value =
+            safeVolume
+
+        listenController.setVolume(
+            safeVolume
         )
     }
     fun loadExpression(

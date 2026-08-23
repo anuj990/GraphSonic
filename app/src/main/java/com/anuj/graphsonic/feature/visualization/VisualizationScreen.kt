@@ -29,6 +29,8 @@ fun VisualizationScreen(
     onStopListening: () -> Unit,
     modifier: Modifier = Modifier,
     frequencyMode: FrequencyMode,
+    volume: Double,
+    onVolumeChanged: (Double) -> Unit,
     playbackSpeed: Double,
     onFrequencyModeChanged: (FrequencyMode) -> Unit,
     onPlaybackSpeedChanged: (Double) -> Unit,
@@ -66,12 +68,15 @@ fun VisualizationScreen(
                 isPlaying = listenState.isPlaying,
                 frequencyMode = frequencyMode,
                 playbackSpeed = playbackSpeed,
+                volume = volume,
                 onStart = onStartListening,
                 onStop = onStopListening,
                 onFrequencyModeChanged =
                     onFrequencyModeChanged,
                 onPlaybackSpeedChanged =
-                    onPlaybackSpeedChanged
+                    onPlaybackSpeedChanged,
+                onVolumeChanged =
+                    onVolumeChanged
             )
         }
     }

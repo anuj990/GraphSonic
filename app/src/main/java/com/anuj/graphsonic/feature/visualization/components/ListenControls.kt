@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,6 +21,8 @@ fun ListenControls(
     onStop: () -> Unit,
     onFrequencyModeChanged: (FrequencyMode) -> Unit,
     onPlaybackSpeedChanged: (Double) -> Unit,
+    volume: Double,
+    onVolumeChanged: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -115,5 +118,21 @@ fun ListenControls(
                 Text("+")
             }
         }
+        Text(
+            text =
+                "Volume ${
+                    (volume * 100.0).toInt()
+                }%"
+        )
+
+        Slider(
+            value = volume.toFloat(),
+            onValueChange = {
+                onVolumeChanged(
+                    it.toDouble()
+                )
+            },
+            valueRange = 0f..1f
+        )
     }
 }
