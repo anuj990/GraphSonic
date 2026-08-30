@@ -12,4 +12,24 @@ public:
             double xMax,
             int sampleCount
     );
+
+private:
+    static void sampleInterval(
+            const Expression& expression,
+            double x1,
+            double y1,
+            double x2,
+            double y2,
+            int depth,
+            int maxDepth,
+            double minWidth,
+            double maxYJump,
+            std::vector<double>& points
+    );
+
+    static void addPoint(
+            double x,
+            double y,
+            std::vector<double>& points
+    );
 };
