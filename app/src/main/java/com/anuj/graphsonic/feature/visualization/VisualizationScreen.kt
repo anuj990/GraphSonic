@@ -13,20 +13,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.feature.audio.FrequencyMode
 import com.anuj.graphsonic.feature.audio.ListenState
 import com.anuj.graphsonic.feature.audio.Waveform
 import com.anuj.graphsonic.feature.visualization.components.CursorInfoCard
 import com.anuj.graphsonic.feature.visualization.components.GraphCanvas
-import com.anuj.graphsonic.feature.visualization.components.ListenControls
 import com.anuj.graphsonic.feature.visualization.components.ListenInfoCard
 import com.anuj.graphsonic.feature.visualization.components.ListenPanel
 
 @Composable
 fun VisualizationScreen(
-    graphData: GraphData,
+    graphLayers: List<GraphLayer>,
     cursor: GraphCursorState,
     listenState: ListenState,
     onCursorChanged: (GraphCursorState) -> Unit,
@@ -42,17 +39,19 @@ fun VisualizationScreen(
     onFrequencyModeChanged: (FrequencyMode) -> Unit,
     waveform: Waveform,
     onWaveformChanged: (Waveform) -> Unit,
-    onPlaybackSpeedChanged: (Double) -> Unit,
+    onPlaybackSpeedChanged: (Double) -> Unit
 ) {
     var controlsExpanded by
     rememberSaveable {
         mutableStateOf(false)
     }
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
+
         GraphCanvas(
-            graphData = graphData,
+            graphLayers = graphLayers,
             cursor = cursor,
             listenState = listenState,
             onCursorChanged = onCursorChanged,
@@ -73,6 +72,7 @@ fun VisualizationScreen(
             horizontalAlignment =
                 Alignment.CenterHorizontally
         ) {
+
             ListenInfoCard(
                 listenState = listenState,
                 modifier = Modifier.padding(

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.feature.audio.ListenState
 import com.anuj.graphsonic.feature.visualization.GraphCursorState
+import com.anuj.graphsonic.feature.visualization.GraphLayer
 import com.anuj.graphsonic.feature.visualization.GraphViewport
 import com.anuj.graphsonic.feature.visualization.utils.graphToScreen
 import com.anuj.graphsonic.feature.visualization.utils.screenToGraphX
@@ -36,20 +37,21 @@ import kotlin.math.pow
 
 @Composable
 fun GraphCanvas(
-    graphData: GraphData,
+    graphLayers: List<GraphLayer>,
     cursor: GraphCursorState,
     listenState: ListenState,
     onCursorChanged: (GraphCursorState) -> Unit,
     evaluateAt: (Double) -> Double,
     onViewportChanged: (GraphViewport, Float) -> Unit,
-    modifier: Modifier = Modifier,
-
+    modifier: Modifier = Modifier
 ) {
-    var canvasWidth by remember {
+    var canvasWidth by
+    remember {
         mutableStateOf(0f)
     }
 
-    var viewport by remember {
+    var viewport by
+    remember {
         mutableStateOf(GraphViewport())
     }
 
@@ -85,8 +87,10 @@ fun GraphCanvas(
                         viewport.scale
 
                     val newScale =
-                        (oldScale * zoom)
-                            .coerceIn(
+                        (
+                                oldScale *
+                                        zoom
+                                ).coerceIn(
                                 10f,
                                 500f
                             )
@@ -153,7 +157,11 @@ fun GraphCanvas(
                         )
                 }
             }
-            .pointerInput(graphData, viewport) {
+            .pointerInput(
+                graphLayers,
+                viewport
+            ) {
+
                 detectDragGesturesAfterLongPress(
 
                     onDragStart = { position ->
@@ -165,6 +173,7 @@ fun GraphCanvas(
                             screenWidth =
                                 size.width.toFloat()
                         ) { newCursor ->
+
                             onCursorChanged(
                                 newCursor
                             )
@@ -181,6 +190,7 @@ fun GraphCanvas(
                             screenWidth =
                                 size.width.toFloat()
                         ) { newCursor ->
+
                             onCursorChanged(
                                 newCursor
                             )
@@ -190,6 +200,7 @@ fun GraphCanvas(
                     },
 
                     onDragEnd = {
+
                         onCursorChanged(
                             cursor.copy(
                                 visible = false
@@ -198,6 +209,7 @@ fun GraphCanvas(
                     },
 
                     onDragCancel = {
+
                         onCursorChanged(
                             cursor.copy(
                                 visible = false
@@ -207,28 +219,159 @@ fun GraphCanvas(
                 )
             }
     ) {
-        drawGrid(viewport)
 
-        drawAxes(viewport)
-
-        drawGraph(
-            graphData = graphData,
-            viewport = viewport
+        drawGrid(
+            viewport
         )
-        drawListenCursor(
-            listenState = listenState,
-            viewport = viewport
+
+        drawAxes(
+            viewport
+        )
+
+        graphLayers
+            .filter {
+                it.enabled
+            }
+            .forEach { layer ->
+
+                drawGraph(
+                    graphData =
+                        layer.graphData,
+                    viewport =
+                        viewport
+                )
+            }
+
+        drawListenCursors(
+            listenState =
+                listenState,
+            viewport =
+                viewport
         )
 
         drawGraphCursor(
-            cursor = cursor,
-            viewport = viewport
+            cursor =
+                cursor,
+            viewport =
+                viewport
         )
 
         drawAxisLabels(
-            viewport = viewport,
-            textMeasurer = textMeasurer
+            viewport =
+                viewport,
+            textMeasurer =
+                textMeasurer
         )
+    }
+}
+private fun DrawScope.drawListenCursors(
+    listenState: ListenState,
+    viewport: GraphViewport
+) {
+    if (!listenState.isPlaying) {
+        return
+    }
+
+    val voices =
+        listenState.voices
+
+    if (voices.isEmpty()) {
+        return
+    }
+
+    val firstDefined =
+        voices.firstOrNull {
+            it.isDefined &&
+                    it.x.isFinite()
+        }
+
+    if (firstDefined != null) {
+
+        val xPosition =
+            graphToScreen(
+                x = firstDefined.x,
+                y = 0.0,
+                screenWidth = size.width,
+                screenHeight = size.height,
+                viewport = viewport
+            ).x
+
+        if (
+            xPosition >= 0f &&
+            xPosition <= size.width
+        ) {
+
+            drawLine(
+                color = Color.Red,
+                start = Offset(
+                    xPosition,
+                    0f
+                ),
+                end = Offset(
+                    xPosition,
+                    size.height
+                ),
+                strokeWidth = 2f
+            )
+        }
+    }
+
+    voices.forEachIndexed { index, voice ->
+
+        if (
+            !voice.isDefined ||
+            !voice.x.isFinite() ||
+            !voice.y.isFinite()
+        ) {
+            return@forEachIndexed
+        }
+
+        val position =
+            graphToScreen(
+                x = voice.x,
+                y = voice.y,
+                screenWidth = size.width,
+                screenHeight = size.height,
+                viewport = viewport
+            )
+
+        if (
+            position.x < 0f ||
+            position.x > size.width ||
+            position.y < 0f ||
+            position.y > size.height
+        ) {
+            return@forEachIndexed
+        }
+
+        drawCircle(
+            color = pointerColor(index),
+            radius = 9f,
+            center = position
+        )
+
+        drawCircle(
+            color = Color.White,
+            radius = 4f,
+            center = position
+        )
+    }
+}
+
+
+private fun pointerColor(
+    index: Int
+): Color {
+
+    return when (
+        index % 6
+    ) {
+        0 -> Color.Red
+        1 -> Color.Blue
+        2 -> Color.Green
+        3 -> Color.Magenta
+        4 -> Color.Cyan
+        else -> Color.Yellow
     }
 }
 private fun DrawScope.drawListenCursor(

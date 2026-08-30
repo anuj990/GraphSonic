@@ -26,6 +26,9 @@ fun AppNavigation(
     val listenState by
     viewModel.listenState.collectAsState()
 
+    val waveform by
+    viewModel.waveform.collectAsState()
+
     NavHost(
         navController = navController,
         startDestination =
@@ -68,31 +71,30 @@ fun AppNavigation(
             viewModel.waveform.collectAsState()
 
             VisualizationScreen(
-                graphData = uiState.graphData,
+                graphLayers = uiState.graphLayers,
                 cursor = cursor,
                 listenState = listenState,
-                frequencyMode = frequencyMode,
-                playbackSpeed = playbackSpeed,
-                volume = volume,
-                waveform = waveform,
-                onCursorChanged =
-                    viewModel::updateCursor,
-                evaluateAt =
-                    viewModel::evaluateAt,
+                onCursorChanged = viewModel::updateCursor,
+                evaluateAt = viewModel::evaluateAt,
                 onViewportChanged =
                     viewModel::onViewportChanged,
                 onStartListening =
                     viewModel::startListening,
                 onStopListening =
                     viewModel::stopListening,
-                onFrequencyModeChanged =
-                    viewModel::setFrequencyMode,
-                onPlaybackSpeedChanged =
-                    viewModel::setPlaybackSpeed,
+                frequencyMode = frequencyMode,
+                volume = viewModel.volume.collectAsState().value,
                 onVolumeChanged =
                     viewModel::setVolume,
+                playbackSpeed = playbackSpeed,
+                onFrequencyModeChanged =
+                    viewModel::setFrequencyMode,
+                waveform =
+                    viewModel.waveform.collectAsState().value,
                 onWaveformChanged =
-                    viewModel::setWaveform
+                    viewModel::setWaveform,
+                onPlaybackSpeedChanged =
+                    viewModel::setPlaybackSpeed
             )
         }
     }
