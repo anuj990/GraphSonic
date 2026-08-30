@@ -4,18 +4,33 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 class AudioEngine {
+
+    data class Voice(
+        val frequency: Double,
+        val volume: Double,
+        val waveform: Waveform,
+        val active: Boolean
+    )
+
     @Volatile
-    private var volume = 0.15
+    private var masterVolume = 0.15
+
+    @Volatile
+    private var defaultWaveform = Waveform.Sine
+
     private val sampleRate = 44100
 
     private val minFrequency = 80.0
     private val maxFrequency = 2000.0
-    @Volatile
-    private var waveform =
-        Waveform.Sine
+
+    private val maxVoices = 16
+
     private val bufferSize =
         AudioTrack.getMinBufferSize(
             sampleRate,
@@ -24,15 +39,7 @@ class AudioEngine {
         ).coerceAtLeast(
             sampleRate / 10
         )
-    fun setVolume(
-        value: Double
-    ) {
-        volume =
-            value.coerceIn(
-                0.0,
-                1.0
-            )
-    }
+
     private val audioTrack =
         AudioTrack.Builder()
             .setAudioAttributes(
@@ -64,20 +71,121 @@ class AudioEngine {
             )
             .build()
 
-    private var phase = 0.0
+    private val voices =
+        arrayOfNulls<Voice>(
+            maxVoices
+        )
 
-    @Volatile
-    private var targetFrequency =
-        minFrequency
+    private val phases =
+        DoubleArray(
+            maxVoices
+        )
 
-    private var currentFrequency =
-        minFrequency
+    private val currentFrequencies =
+        DoubleArray(
+            maxVoices
+        ) {
+            minFrequency
+        }
 
-    private var audioJob:
-            Thread? = null
+    private var audioJob: Thread? = null
 
     @Volatile
     private var running = false
+
+    fun setVolume(
+        value: Double
+    ) {
+        masterVolume =
+            value.coerceIn(
+                0.0,
+                1.0
+            )
+    }
+
+    fun setWaveform(
+        value: Waveform
+    ) {
+        defaultWaveform = value
+
+        for (
+        index in 0 until maxVoices
+        ) {
+            val voice =
+                voices[index]
+
+            if (voice != null) {
+                voices[index] =
+                    voice.copy(
+                        waveform = value
+                    )
+            }
+        }
+    }
+
+    fun setFrequency(
+        frequency: Double
+    ) {
+        setVoice(
+            index = 0,
+            frequency = frequency,
+            waveform = defaultWaveform,
+            active = true
+        )
+    }
+
+    fun setVoice(
+        index: Int,
+        frequency: Double,
+        waveform: Waveform,
+        active: Boolean,
+        volume: Double = 1.0
+    ) {
+        if (
+            index !in 0 until maxVoices
+        ) {
+            return
+        }
+
+        voices[index] =
+            Voice(
+                frequency =
+                    frequency.coerceIn(
+                        minFrequency,
+                        maxFrequency
+                    ),
+                volume =
+                    volume.coerceIn(
+                        0.0,
+                        1.0
+                    ),
+                waveform = waveform,
+                active = active
+            )
+    }
+
+    fun clearVoice(
+        index: Int
+    ) {
+        if (
+            index !in 0 until maxVoices
+        ) {
+            return
+        }
+
+        voices[index] = null
+        phases[index] = 0.0
+        currentFrequencies[index] =
+            minFrequency
+    }
+
+    fun clearVoices() {
+        for (
+        index in 0 until maxVoices
+        ) {
+            clearVoice(index)
+        }
+    }
 
     fun start() {
 
@@ -96,36 +204,24 @@ class AudioEngine {
                 start()
             }
     }
-    fun setWaveform(
-        value: Waveform
-    ) {
-        waveform = value
-    }
-    fun setFrequency(
-        frequency: Double
-    ) {
-        targetFrequency =
-            frequency.coerceIn(
-                minFrequency,
-                maxFrequency
-            )
-    }
+
     private fun generateSample(
-        phase: Double
+        phase: Double,
+        waveform: Waveform
     ): Double {
+
         return when (waveform) {
+
             Waveform.Sine ->
-                sin(
-                    phase
-                )
+                sin(phase)
 
             Waveform.Triangle ->
                 1.0 -
                         4.0 *
-                        kotlin.math.abs(
+                        abs(
                             phase /
                                     (2.0 * PI) -
-                                    kotlin.math.floor(
+                                    floor(
                                         phase /
                                                 (2.0 * PI) +
                                                 0.5
@@ -133,9 +229,7 @@ class AudioEngine {
                         )
 
             Waveform.Square ->
-                if (
-                    phase < PI
-                ) {
+                if (phase < PI) {
                     1.0
                 } else {
                     -1.0
@@ -146,7 +240,7 @@ class AudioEngine {
                         (
                                 phase /
                                         (2.0 * PI) -
-                                        kotlin.math.floor(
+                                        floor(
                                             phase /
                                                     (2.0 * PI) +
                                                     0.5
@@ -154,6 +248,7 @@ class AudioEngine {
                                 )
         }
     }
+
     private fun generateAudio() {
 
         val samples =
@@ -166,38 +261,92 @@ class AudioEngine {
 
         while (running) {
 
-            val target =
-                targetFrequency
+            for (
+            index in samples.indices
+            ) {
 
-            currentFrequency +=
-                (
-                        target -
-                                currentFrequency
+                var mixedSample =
+                    0.0
+
+                var activeVoices =
+                    0
+
+                for (
+                voiceIndex in 0 until maxVoices
+                ) {
+
+                    val voice =
+                        voices[voiceIndex]
+                            ?: continue
+
+                    if (!voice.active) {
+                        continue
+                    }
+
+                    currentFrequencies[
+                        voiceIndex
+                    ] +=
+                        (
+                                voice.frequency -
+                                        currentFrequencies[
+                                            voiceIndex
+                                        ]
+                                ) *
+                                smoothing
+
+                    mixedSample +=
+                        generateSample(
+                            phases[voiceIndex],
+                            voice.waveform
                         ) *
-                        smoothing
+                                voice.volume
 
-            val phaseStep =
-                2.0 *
-                        PI *
-                        currentFrequency /
-                        sampleRate.toDouble()
+                    val phaseStep =
+                        2.0 *
+                                PI *
+                                currentFrequencies[
+                                    voiceIndex
+                                ] /
+                                sampleRate.toDouble()
 
-            for (index in samples.indices) {
+                    phases[voiceIndex] +=
+                        phaseStep
 
-                samples[index] =
+                    if (
+                        phases[voiceIndex] >=
+                        2.0 * PI
+                    ) {
+                        phases[voiceIndex] -=
+                            2.0 * PI
+                    }
+
+                    activeVoices++
+                }
+
+                if (
+                    activeVoices > 1
+                ) {
+                    mixedSample /=
+                        sqrt(
+                            activeVoices.toDouble()
+                        )
+                }
+
+                val output =
                     (
-                            generateSample(phase) *
+                            mixedSample *
                                     Short.MAX_VALUE *
-                                    volume
+                                    masterVolume
                             )
+                        .coerceIn(
+                            Short.MIN_VALUE.toDouble(),
+                            Short.MAX_VALUE.toDouble()
+                        )
                         .toInt()
                         .toShort()
 
-                phase += phaseStep
-
-                if (phase >= 2.0 * PI) {
-                    phase -= 2.0 * PI
-                }
+                samples[index] =
+                    output
             }
 
             audioTrack.write(
@@ -228,7 +377,6 @@ class AudioEngine {
     fun release() {
 
         stop()
-
         audioTrack.release()
     }
 }

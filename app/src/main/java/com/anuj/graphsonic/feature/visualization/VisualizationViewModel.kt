@@ -2,7 +2,6 @@ package com.anuj.graphsonic.feature.visualization
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.engine.GraphEngine
 import com.anuj.graphsonic.engine.NativeBridge
 import com.anuj.graphsonic.feature.audio.FrequencyMode
@@ -15,7 +14,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class VisualizationUiState(
-    val graphData: GraphData = GraphData(emptyList()),
+    val graphLayers: List<GraphLayer> = emptyList(),
+    val graphData: com.anuj.graphsonic.domain.model.GraphData =
+        com.anuj.graphsonic.domain.model.GraphData(emptyList()),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isListening: Boolean = false
@@ -38,21 +39,16 @@ class VisualizationViewModel : ViewModel() {
     private val viewportController =
         GraphViewportController(
             scope = viewModelScope,
-            onViewportSettled = ::resampleGraph
+            onViewportSettled = ::resampleGraphs
         )
-
-    private var expressionHandle =
-        0L
-
-    private var samplingGeneration =
-        0L
 
     private val _uiState =
         MutableStateFlow(
             VisualizationUiState()
         )
 
-    val uiState: StateFlow<VisualizationUiState> =
+    val uiState:
+            StateFlow<VisualizationUiState> =
         _uiState.asStateFlow()
 
     private val _cursor =
@@ -60,7 +56,8 @@ class VisualizationViewModel : ViewModel() {
             GraphCursorState()
         )
 
-    val cursor: StateFlow<GraphCursorState> =
+    val cursor:
+            StateFlow<GraphCursorState> =
         _cursor.asStateFlow()
 
     private val _frequencyMode =
@@ -77,7 +74,8 @@ class VisualizationViewModel : ViewModel() {
             Waveform.Sine
         )
 
-    val waveform: StateFlow<Waveform> =
+    val waveform:
+            StateFlow<Waveform> =
         _waveform.asStateFlow()
 
     private val _playbackSpeed =
@@ -90,94 +88,99 @@ class VisualizationViewModel : ViewModel() {
     private val _volume =
         MutableStateFlow(0.15)
 
-    val volume: StateFlow<Double> =
+    val volume:
+            StateFlow<Double> =
         _volume.asStateFlow()
 
     val listenState =
         listenController.state
 
+    private var nextLayerId =
+        1L
+
+    private val expressionHandles =
+        LinkedHashMap<Long, Long>()
+
+    private var samplingGeneration =
+        0L
+
     fun loadExpression(
         expression: String
     ): Boolean {
 
-        samplingGeneration += 1L
+        val trimmed =
+            expression.trim()
+
+        if (trimmed.isEmpty()) {
+
+            _uiState.value =
+                _uiState.value.copy(
+                    errorMessage =
+                        "Enter an equation"
+                )
+
+            return false
+        }
 
         return try {
 
-            val newHandle =
+            val handle =
                 nativeBridge.createExpression(
-                    expression
+                    trimmed
                 )
 
-            if (newHandle == 0L) {
+            if (handle == 0L) {
 
                 _uiState.value =
                     _uiState.value.copy(
-                        isLoading = false,
                         errorMessage =
-                            "Equation is invalid",
-                        isListening = false
+                            "Equation is invalid"
                     )
 
                 false
 
             } else {
 
+                val id =
+                    nextLayerId++
+
                 val graph =
                     graphEngine.generateGraph(
                         expressionHandle =
-                            newHandle,
+                            handle,
                         xMin = -10.0,
                         xMax = 10.0,
                         sampleCount = 2000
                     )
+
+                expressionHandles[id] =
+                    handle
+
                 listenController.setGraphData(
-                    graph
+                    id = id,
+                    graphData = graph
                 )
 
-                if (expressionHandle != 0L) {
-                    nativeBridge.destroyExpression(
-                        expressionHandle
+                val layer =
+                    GraphLayer(
+                        id = id,
+                        expression = trimmed,
+                        graphData = graph,
+                        enabled = true
                     )
-                }
-
-                listenController.stop()
-
-                expressionHandle =
-                    newHandle
-
-                listenController.setRange(
-                    start = -10.0,
-                    end = 10.0
-                )
 
                 _uiState.value =
-                    VisualizationUiState(
-                        graphData = graph,
+                    _uiState.value.copy(
+                        graphLayers =
+                            _uiState.value.graphLayers +
+                                    layer,
+                        graphData =
+                            graph,
                         isLoading = false,
-                        errorMessage = null,
-                        isListening = false
+                        errorMessage = null
                     )
-
-                _cursor.value =
-                    GraphCursorState()
-
                 true
             }
-
-        } catch (
-            exception: IllegalArgumentException
-        ) {
-
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage =
-                        "Equation is invalid",
-                    isListening = false
-                )
-
-            false
 
         } catch (
             exception: Exception
@@ -185,14 +188,72 @@ class VisualizationViewModel : ViewModel() {
 
             _uiState.value =
                 _uiState.value.copy(
-                    isLoading = false,
                     errorMessage =
                         "Equation is invalid",
-                    isListening = false
+                    isLoading = false
                 )
 
             false
         }
+    }
+
+    fun removeExpression(
+        id: Long
+    ) {
+
+        val handle =
+            expressionHandles.remove(
+                id
+            )
+
+        if (handle != null) {
+            nativeBridge.destroyExpression(
+                handle
+            )
+        }
+
+        listenController.removeGraphData(
+            id
+        )
+        val remainingLayers =
+            _uiState.value.graphLayers.filter {
+                it.id != id
+            }
+
+        _uiState.value =
+            _uiState.value.copy(
+                graphLayers = remainingLayers,
+                graphData =
+                    remainingLayers.firstOrNull()?.graphData
+                        ?: com.anuj.graphsonic.domain.model.GraphData(
+                            emptyList()
+                        )
+            )
+    }
+
+    fun setExpressionEnabled(
+        id: Long,
+        enabled: Boolean
+    ) {
+
+        _uiState.value =
+            _uiState.value.copy(
+                graphLayers =
+                    _uiState.value.graphLayers.map {
+                        if (it.id == id) {
+                            it.copy(
+                                enabled = enabled
+                            )
+                        } else {
+                            it
+                        }
+                    }
+            )
+
+        listenController.setEnabled(
+            id = id,
+            enabled = enabled
+        )
     }
 
     fun clearError() {
@@ -200,6 +261,7 @@ class VisualizationViewModel : ViewModel() {
         if (
             _uiState.value.errorMessage != null
         ) {
+
             _uiState.value =
                 _uiState.value.copy(
                     errorMessage = null
@@ -208,28 +270,44 @@ class VisualizationViewModel : ViewModel() {
     }
 
     fun evaluateAt(
+        id: Long,
         x: Double
     ): Double {
 
-        if (expressionHandle == 0L) {
-            return Double.NaN
-        }
+        val handle =
+            expressionHandles[id]
+                ?: return Double.NaN
 
         return graphEngine.evaluate(
-            expressionHandle = expressionHandle,
+            expressionHandle = handle,
             x = x
+        )
+    }
+    fun evaluateAt(
+        x: Double
+    ): Double {
+
+        val firstLayer =
+            _uiState.value.graphLayers.firstOrNull()
+                ?: return Double.NaN
+
+        return evaluateAt(
+            firstLayer.id,
+            x
         )
     }
 
     fun updateCursor(
         cursor: GraphCursorState
     ) {
-        _cursor.value = cursor
+        _cursor.value =
+            cursor
     }
 
     fun setFrequencyMode(
         mode: FrequencyMode
     ) {
+
         _frequencyMode.value =
             mode
 
@@ -241,6 +319,7 @@ class VisualizationViewModel : ViewModel() {
     fun setWaveform(
         waveform: Waveform
     ) {
+
         _waveform.value =
             waveform
 
@@ -291,8 +370,8 @@ class VisualizationViewModel : ViewModel() {
     ) {
 
         updateListenRange(
-            viewport = viewport,
-            screenWidth = screenWidth
+            viewport,
+            screenWidth
         )
 
         viewportController.onViewportChanged(
@@ -362,7 +441,9 @@ class VisualizationViewModel : ViewModel() {
 
     fun startListening() {
 
-        if (expressionHandle == 0L) {
+        if (
+            expressionHandles.isEmpty()
+        ) {
             return
         }
 
@@ -384,12 +465,14 @@ class VisualizationViewModel : ViewModel() {
             )
     }
 
-    private fun resampleGraph(
+    private fun resampleGraphs(
         viewport: GraphViewport,
         screenWidth: Float
     ) {
 
-        if (expressionHandle == 0L) {
+        if (
+            expressionHandles.isEmpty()
+        ) {
             return
         }
 
@@ -406,14 +489,6 @@ class VisualizationViewModel : ViewModel() {
         ) {
             return
         }
-
-        val handle =
-            expressionHandle
-
-        samplingGeneration += 1L
-
-        val generation =
-            samplingGeneration
 
         val halfWidth =
             screenWidth.toDouble() /
@@ -449,37 +524,66 @@ class VisualizationViewModel : ViewModel() {
                     10000
                 )
 
+        samplingGeneration += 1L
+
+        val generation =
+            samplingGeneration
+
         _uiState.value =
             _uiState.value.copy(
                 isLoading = true
             )
 
+        val handles =
+            expressionHandles.toMap()
+
         viewModelScope.launch(
             Dispatchers.Default
         ) {
 
-            val graph =
-                graphEngine.generateGraph(
-                    expressionHandle = handle,
-                    xMin = xMin,
-                    xMax = xMax,
-                    sampleCount = sampleCount
-                )
+            val updatedLayers =
+                _uiState.value.graphLayers.map { layer ->
+
+                    val handle =
+                        handles[layer.id]
+
+                    if (handle == null) {
+                        layer
+                    } else {
+
+                        val graph =
+                            graphEngine.generateGraph(
+                                expressionHandle =
+                                    handle,
+                                xMin = xMin,
+                                xMax = xMax,
+                                sampleCount =
+                                    sampleCount
+                            )
+
+                        listenController.setGraphData(
+                            id = layer.id,
+                            graphData = graph
+                        )
+
+                        layer.copy(
+                            graphData = graph
+                        )
+                    }
+                }
 
             if (
                 generation ==
-                samplingGeneration &&
-                handle ==
-                expressionHandle
+                samplingGeneration
             ) {
-
-                listenController.setGraphData(
-                    graph
-                )
 
                 _uiState.value =
                     _uiState.value.copy(
-                        graphData = graph,
+                        graphLayers =
+                            updatedLayers,
+                        graphData =
+                            updatedLayers.firstOrNull()?.graphData
+                                ?: _uiState.value.graphData,
                         isLoading = false
                     )
             }
@@ -494,14 +598,13 @@ class VisualizationViewModel : ViewModel() {
 
         listenController.release()
 
-        if (expressionHandle != 0L) {
-
+        expressionHandles.values.forEach {
             nativeBridge.destroyExpression(
-                expressionHandle
+                it
             )
-
-            expressionHandle = 0L
         }
+
+        expressionHandles.clear()
 
         super.onCleared()
     }

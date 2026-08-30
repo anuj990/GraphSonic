@@ -13,20 +13,23 @@ import kotlinx.coroutines.launch
 
 class ListenController(
     private val scope: CoroutineScope,
-    private val evaluateAt: (Double) -> Double
+    private val evaluateAt: (Long, Double) -> Double
 ) {
 
-    private var waveform =
-        Waveform.Sine
-
-    private val noteMapper =
-        NoteMapper()
+    private data class EquationVoice(
+        val id: Long,
+        var waveform: Waveform,
+        var segments: List<GraphSegment> = emptyList()
+    )
 
     private val audioEngine =
         AudioEngine()
 
     private val frequencyMapper =
         FrequencyMapper()
+
+    private val noteMapper =
+        NoteMapper()
 
     private val _state =
         MutableStateFlow(
@@ -36,14 +39,14 @@ class ListenController(
     val state: StateFlow<ListenState> =
         _state.asStateFlow()
 
-    private var volume =
-        0.15
-
     private var frequencyMode =
         FrequencyMode.Continuous
 
-    private var playbackJob: Job? =
-        null
+    private var volume =
+        0.15
+
+    private var playbackSpeed =
+        1.0
 
     private var startX =
         -10.0
@@ -54,11 +57,14 @@ class ListenController(
     private var step =
         0.01
 
-    private var playbackSpeed =
-        1.0
+    private var playbackJob: Job? =
+        null
 
-    private var segments =
-        emptyList<GraphSegment>()
+    private val equations =
+        LinkedHashMap<Long, EquationVoice>()
+
+    private var defaultWaveform =
+        Waveform.Sine
 
     init {
         audioEngine.setVolume(
@@ -66,17 +72,79 @@ class ListenController(
         )
 
         audioEngine.setWaveform(
-            waveform
+            defaultWaveform
         )
     }
 
     fun setGraphData(
+        id: Long,
         graphData: GraphData
     ) {
-        segments =
+        val voice =
+            equations[id]
+                ?: EquationVoice(
+                    id = id,
+                    waveform = defaultWaveform
+                )
+
+        voice.segments =
             GraphSegmentExtractor.extract(
                 graphData
             )
+
+        equations[id] =
+            voice
+    }
+
+    fun removeGraphData(
+        id: Long
+    ) {
+        equations.remove(id)
+
+        audioEngine.clearVoice(
+            voiceIndex(id)
+        )
+
+        _state.value =
+            _state.value.copy(
+                voices =
+                    _state.value.voices.filter {
+                        it.equationId != id
+                    }
+            )
+    }
+
+    fun setEnabled(
+        id: Long,
+        enabled: Boolean
+    ) {
+        val index =
+            voiceIndex(id)
+
+        if (!enabled) {
+            audioEngine.clearVoice(index)
+
+            val current =
+                _state.value.voices
+
+            _state.value =
+                _state.value.copy(
+                    voices =
+                        current.map { voice ->
+                            if (
+                                voice.equationId == id
+                            ) {
+                                voice.copy(
+                                    isDefined = false,
+                                    frequency = 0.0,
+                                    note = null
+                                )
+                            } else {
+                                voice
+                            }
+                        }
+                )
+        }
     }
 
     fun start() {
@@ -87,25 +155,15 @@ class ListenController(
             return
         }
 
-        val usableSegments =
-            getUsableSegments()
+        val usable =
+            equations.values.filter {
+                it.segments.any { segment ->
+                    segment.points.size >= 2
+                }
+            }
 
         if (
-            usableSegments.isEmpty()
-        ) {
-            _state.value =
-                ListenState()
-
-            return
-        }
-
-        val firstSegmentIndex =
-            findFirstSegmentIndex(
-                usableSegments
-            )
-
-        if (
-            firstSegmentIndex < 0
+            usable.isEmpty()
         ) {
             _state.value =
                 ListenState()
@@ -114,7 +172,7 @@ class ListenController(
         }
 
         _state.value =
-            _state.value.copy(
+            ListenState(
                 isPlaying = true
             )
 
@@ -125,244 +183,154 @@ class ListenController(
                 Dispatchers.Default
             ) {
 
-                var segmentIndex =
-                    firstSegmentIndex
-
-                var segment =
-                    usableSegments[
-                        segmentIndex
-                    ]
-
                 var x =
-                    maxOf(
-                        startX,
-                        segment.startX
-                    )
+                    startX
 
                 while (isActive) {
 
-
-                    if (
-                        x > segment.endX
-                    ) {
-
-                        segmentIndex =
-                            nextSegmentIndex(
-                                currentIndex =
-                                    segmentIndex,
-                                size =
-                                    usableSegments.size
-                            )
-
-                        segment =
-                            usableSegments[
-                                segmentIndex
-                            ]
-
-                        x =
-                            maxOf(
-                                startX,
-                                segment.startX
-                            )
-
-                        continue
+                    if (x > endX) {
+                        x = startX
                     }
 
-                    val y =
-                        evaluateAt(x)
+                    val states =
+                        mutableListOf<ListenVoiceState>()
 
-                    if (
-                        !y.isFinite()
-                    ) {
+                    var activeVoices =
+                        0
 
-                        val nextX =
-                            moveForward(
+                    usable.forEachIndexed { index, equation ->
+
+                        val y =
+                            evaluateAt(
+                                equation.id,
                                 x
                             )
 
-                        if (
-                            nextX != null &&
-                            nextX <= segment.endX
-                        ) {
+                        val defined =
+                            y.isFinite()
 
-                            x =
-                                nextX
+                        if (defined) {
+
+                            val frequency =
+                                frequencyMapper.map(
+                                    value = y,
+                                    mode = frequencyMode
+                                )
+
+                            audioEngine.setVoice(
+                                index = index,
+                                frequency = frequency,
+                                waveform =
+                                    equation.waveform,
+                                active = true,
+                                volume =
+                                    voiceVolume(
+                                        usable.size
+                                    )
+                            )
+
+                            states +=
+                                ListenVoiceState(
+                                    equationId =
+                                        equation.id,
+                                    isDefined = true,
+                                    x = x,
+                                    y = y,
+                                    frequency =
+                                        frequency,
+                                    note =
+                                        if (
+                                            frequencyMode ==
+                                            FrequencyMode.Musical
+                                        ) {
+                                            noteMapper.map(
+                                                frequency
+                                            )
+                                        } else {
+                                            null
+                                        }
+                                )
+
+                            activeVoices++
 
                         } else {
 
-                            segmentIndex =
-                                nextSegmentIndex(
-                                    currentIndex =
-                                        segmentIndex,
-                                    size =
-                                        usableSegments.size
-                                )
+                            audioEngine.setVoice(
+                                index = index,
+                                frequency = 0.0,
+                                waveform =
+                                    equation.waveform,
+                                active = false
+                            )
 
-                            segment =
-                                usableSegments[
-                                    segmentIndex
-                                ]
-
-                            x =
-                                maxOf(
-                                    startX,
-                                    segment.startX
+                            states +=
+                                ListenVoiceState(
+                                    equationId =
+                                        equation.id,
+                                    isDefined = false,
+                                    x = x
                                 )
                         }
-
-                        continue
                     }
 
-                    val frequency =
-                        frequencyMapper.map(
-                            value = y,
-                            mode = frequencyMode
-                        )
-
-                    audioEngine.setFrequency(
-                        frequency
-                    )
+                    for (
+                    index in usable.indices
+                    ) {
+                        if (
+                            index >= states.size
+                        ) {
+                            audioEngine.clearVoice(
+                                index
+                            )
+                        }
+                    }
 
                     _state.value =
                         ListenState(
                             isPlaying = true,
-                            x = x,
-                            y = y,
-                            frequency = frequency,
-                            note =
-                                if (
-                                    frequencyMode ==
-                                    FrequencyMode.Musical
-                                ) {
-                                    noteMapper.map(
-                                        frequency
-                                    )
-                                } else {
-                                    null
-                                },
                             progress =
-                                calculateProgress(
-                                    x
-                                )
+                                calculateProgress(x),
+                            voices = states
                         )
 
-                    val nextX =
-                        moveForward(
-                            x
-                        )
-
-                    if (
-                        nextX != null &&
-                        nextX <= segment.endX
-                    ) {
-
-                        x =
-                            nextX
-
-                    } else {
-
-
-                        segmentIndex =
-                            nextSegmentIndex(
-                                currentIndex =
-                                    segmentIndex,
-                                size =
-                                    usableSegments.size
-                            )
-
-                        segment =
-                            usableSegments[
-                                segmentIndex
-                            ]
-
-                        x =
-                            maxOf(
-                                startX,
-                                segment.startX
-                            )
-                    }
+                    x +=
+                        step *
+                                playbackSpeed
 
                     delay(10L)
                 }
             }
     }
 
-    private fun getUsableSegments():
-            List<GraphSegment> {
+    private fun voiceVolume(
+        count: Int
+    ): Double {
 
-        return segments.filter { segment ->
-
-            segment.points.size >= 2 &&
-                    segment.startX.isFinite() &&
-                    segment.endX.isFinite() &&
-                    segment.endX >= segment.startX
+        if (count <= 1) {
+            return 1.0
         }
+
+        return 1.0 /
+                kotlin.math.sqrt(
+                    count.toDouble()
+                )
     }
 
-
-    private fun findFirstSegmentIndex(
-        segments: List<GraphSegment>
+    private fun voiceIndex(
+        id: Long
     ): Int {
 
-        if (
-            segments.isEmpty()
-        ) {
-            return -1
-        }
+        val index =
+            equations.keys.indexOf(id)
 
-        for (
-        index in segments.indices
-        ) {
-
-            val segment =
-                segments[index]
-
-            val intersectsRange =
-                segment.endX >= startX &&
-                        segment.startX <= endX
-
-            if (
-                intersectsRange
-            ) {
-                return index
-            }
-        }
-
-        return -1
-    }
-
-    private fun nextSegmentIndex(
-        currentIndex: Int,
-        size: Int
-    ): Int {
-
-        if (
-            size <= 1
-        ) {
+        if (index < 0) {
             return 0
         }
 
-        return (
-                currentIndex + 1
-                ) % size
-    }
-
-    private fun moveForward(
-        x: Double
-    ): Double? {
-
-        val next =
-            x +
-                    step *
-                    playbackSpeed
-
-        if (
-            !next.isFinite()
-        ) {
-            return null
-        }
-
-        return next
+        return index.coerceIn(
+            0,
+            15
+        )
     }
 
     private fun calculateProgress(
@@ -391,9 +359,13 @@ class ListenController(
     fun setWaveform(
         value: Waveform
     ) {
-
-        waveform =
+        defaultWaveform =
             value
+
+        equations.values.forEach {
+            it.waveform =
+                value
+        }
 
         audioEngine.setWaveform(
             value
@@ -403,7 +375,6 @@ class ListenController(
     fun setFrequencyMode(
         mode: FrequencyMode
     ) {
-
         frequencyMode =
             mode
     }
@@ -411,7 +382,6 @@ class ListenController(
     fun setPlaybackSpeed(
         speed: Double
     ) {
-
         playbackSpeed =
             speed.coerceIn(
                 0.25,
@@ -422,7 +392,6 @@ class ListenController(
     fun setVolume(
         value: Double
     ) {
-
         volume =
             value.coerceIn(
                 0.0,
@@ -437,29 +406,15 @@ class ListenController(
     fun stop() {
 
         playbackJob?.cancel()
+        playbackJob = null
 
-        playbackJob =
-            null
-
+        audioEngine.clearVoices()
         audioEngine.stop()
 
         _state.value =
             ListenState(
                 isPlaying = false
             )
-    }
-
-    private fun finishPlayback() {
-
-        audioEngine.stop()
-
-        _state.value =
-            ListenState(
-                isPlaying = false
-            )
-
-        playbackJob =
-            null
     }
 
     fun setRange(
@@ -474,29 +429,17 @@ class ListenController(
             return
         }
 
-        val min =
+        startX =
             minOf(
                 start,
                 end
             )
 
-        val max =
+        endX =
             maxOf(
                 start,
                 end
             )
-
-        if (
-            max <= min
-        ) {
-            return
-        }
-
-        startX =
-            min
-
-        endX =
-            max
     }
 
     fun setStep(
@@ -516,8 +459,7 @@ class ListenController(
 
         stop()
 
-        segments =
-            emptyList()
+        equations.clear()
 
         _state.value =
             ListenState()
@@ -526,7 +468,6 @@ class ListenController(
     fun release() {
 
         stop()
-
         audioEngine.release()
     }
 }
