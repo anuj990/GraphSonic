@@ -1,16 +1,7 @@
 #include "GraphSampler.h"
 
-#include <algorithm>
 #include <cmath>
 #include <limits>
-
-namespace {
-
-    double nanValue() {
-        return std::numeric_limits<double>::quiet_NaN();
-    }
-
-}
 
 std::vector<double> GraphSampler::sample(
         const Expression& expression,
@@ -22,9 +13,9 @@ std::vector<double> GraphSampler::sample(
 
     if (
             sampleCount < 2 ||
-            !std::isfinite(xMin) ||
-            !std::isfinite(xMax) ||
-            xMin >= xMax
+                    !std::isfinite(xMin) ||
+                    !std::isfinite(xMax) ||
+                    xMin >= xMax
             ) {
         return points;
     }
@@ -37,87 +28,46 @@ std::vector<double> GraphSampler::sample(
 
     const double step =
             (xMax - xMin) /
-            static_cast<double>(
-                    sampleCount - 1
-            );
+                    static_cast<double>(
+                            sampleCount - 1
+                    );
 
-    double previousY =
-            nanValue();
-
-    bool previousValid =
-            false;
-
-    for (int i = 0;
-         i < sampleCount;
-         ++i) {
+    for (
+            int i = 0;
+            i < sampleCount;
+            ++i
+            ) {
 
         const double x =
                 xMin +
-                static_cast<double>(i) *
-                step;
+                        static_cast<double>(i) *
+                                step;
 
-        const double y =
-                expression.evaluate(x);
+        const EvaluationResult result =
+                expression.evaluateResult(
+                        x
+                );
 
-        const bool valid =
-                std::isfinite(y);
-
-        if (!valid) {
+        if (!result.isValid()) {
 
             points.push_back(
-                    nanValue()
+                    std::numeric_limits<double>::quiet_NaN()
             );
 
             points.push_back(
-                    nanValue()
+                    std::numeric_limits<double>::quiet_NaN()
             );
-
-            previousValid =
-                    false;
 
             continue;
         }
 
-        if (previousValid) {
+        points.push_back(
+                x
+        );
 
-            const double jump =
-                    std::abs(
-                            y -
-                            previousY
-                    );
-
-            const double scale =
-                    std::max(
-                            {
-                                    1.0,
-                                    std::abs(y),
-                                    std::abs(previousY)
-                            }
-                    );
-
-            if (
-                    jump >
-                    scale * 100.0
-                    ) {
-
-                points.push_back(
-                        nanValue()
-                );
-
-                points.push_back(
-                        nanValue()
-                );
-            }
-        }
-
-        points.push_back(x);
-        points.push_back(y);
-
-        previousY =
-                y;
-
-        previousValid =
-                true;
+        points.push_back(
+                result.value
+        );
     }
 
     return points;

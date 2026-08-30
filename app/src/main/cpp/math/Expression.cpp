@@ -1,20 +1,21 @@
 #include "Expression.h"
 
-#include "Evaluator.h"
 #include "Lexer.h"
 #include "Parser.h"
-
-#include <cmath>
 
 Expression::Expression(
         const std::string& expression
 ) {
-    Lexer lexer(expression);
+    Lexer lexer(
+            expression
+    );
 
     const auto tokens =
             lexer.tokenize();
 
-    Parser parser(tokens);
+    Parser parser(
+            tokens
+    );
 
     root =
             parser.parse();
@@ -23,7 +24,18 @@ Expression::Expression(
 double Expression::evaluate(
         double x
 ) const {
+
     return Evaluator::evaluate(
+            *root,
+            x
+    );
+}
+
+EvaluationResult Expression::evaluateResult(
+        double x
+) const {
+
+    return Evaluator::evaluateResult(
             *root,
             x
     );
@@ -32,12 +44,6 @@ double Expression::evaluate(
 bool Expression::isDefined(
         double x
 ) const {
-    if (!std::isfinite(x)) {
-        return false;
-    }
 
-    const double result =
-            evaluate(x);
-
-    return std::isfinite(result);
+    return evaluateResult(x).isValid();
 }

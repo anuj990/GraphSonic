@@ -2,18 +2,21 @@
 
 #include <cmath>
 #include <limits>
-#include <stdexcept>
 
 namespace {
 
-    double nanValue() {
-        return std::numeric_limits<double>::quiet_NaN();
+    constexpr double PI =
+            3.141592653589793238462643383279502884;
+
+    constexpr double TAN_DOMAIN_EPSILON =
+            1e-12;
+
+    bool isFinite(double value) {
+        return std::isfinite(value);
     }
 
-    bool nearZero(
-            double value
-    ) {
-        return std::abs(value) < 1e-12;
+    bool isNearZero(double value) {
+        return std::abs(value) < TAN_DOMAIN_EPSILON;
     }
 
 }
@@ -22,304 +25,446 @@ double Evaluator::evaluate(
         const ASTNode& node,
         double x
 ) {
+    const EvaluationResult result =
+            evaluateResult(
+                    node,
+                    x
+            );
 
+    if (!result.isValid()) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    return result.value;
+}
+
+EvaluationResult Evaluator::evaluateResult(
+        const ASTNode& node,
+        double x
+) {
+    if (!isFinite(x)) {
+        return EvaluationResult::undefined();
+    }
+
+    return evaluateNode(
+            node,
+            x
+    );
+}
+
+EvaluationResult Evaluator::evaluateNode(
+        const ASTNode& node,
+        double x
+) {
     switch (node.type) {
 
-        case NodeType::Number:
-            return node.value;
+        case NodeType::Number: {
+
+            if (!isFinite(node.value)) {
+                return EvaluationResult::overflow();
+            }
+
+            return EvaluationResult::valid(
+                    node.value
+            );
+        }
 
         case NodeType::Variable:
-            return x;
+
+            return EvaluationResult::valid(
+                    x
+            );
 
         case NodeType::Unary: {
 
-            const double value =
-                    evaluate(
+            const EvaluationResult value =
+                    evaluateNode(
                             *node.right,
                             x
                     );
 
-            if (!std::isfinite(value)) {
-                return nanValue();
+            if (!value.isValid()) {
+                return value;
             }
 
-            switch (node.op) {
+            const double result =
+                    -value.value;
 
-                case OperatorType::Minus:
-                    return -value;
-
-                default:
-                    return nanValue();
+            if (!isFinite(result)) {
+                return EvaluationResult::overflow();
             }
+
+            return EvaluationResult::valid(
+                    result
+            );
         }
 
         case NodeType::Binary: {
 
-            const double left =
-                    evaluate(
+            const EvaluationResult left =
+                    evaluateNode(
                             *node.left,
                             x
                     );
 
-            const double right =
-                    evaluate(
+            if (!left.isValid()) {
+                return left;
+            }
+
+            const EvaluationResult right =
+                    evaluateNode(
                             *node.right,
                             x
                     );
 
-            if (
-                    !std::isfinite(left) ||
-                    !std::isfinite(right)
-                    ) {
-                return nanValue();
+            if (!right.isValid()) {
+                return right;
             }
 
-            switch (node.op) {
-
-                case OperatorType::Plus:
-                    return left + right;
-
-                case OperatorType::Minus:
-                    return left - right;
-
-                case OperatorType::Multiply:
-                    return left * right;
-
-                case OperatorType::Divide:
-
-                    if (nearZero(right)) {
-                        return nanValue();
-                    }
-
-                    return left / right;
-
-                case OperatorType::Power: {
-
-                    const double result =
-                            std::pow(
-                                    left,
-                                    right
-                            );
-
-                    if (!std::isfinite(result)) {
-                        return nanValue();
-                    }
-
-                    return result;
-                }
-            }
-
-            return nanValue();
+            return evaluateBinary(
+                    node.op,
+                    left.value,
+                    right.value
+            );
         }
 
         case NodeType::Function: {
 
-            const double argument =
-                    evaluate(
+            const EvaluationResult argument =
+                    evaluateNode(
                             *node.left,
                             x
                     );
 
-            if (!std::isfinite(argument)) {
-                return nanValue();
+            if (!argument.isValid()) {
+                return argument;
             }
 
             return evaluateFunction(
                     node,
-                    argument
+                    argument.value
             );
         }
     }
 
-    return nanValue();
+    return EvaluationResult::undefined();
 }
 
-double Evaluator::evaluateFunction(
+EvaluationResult Evaluator::evaluateBinary(
+        OperatorType operation,
+        double left,
+        double right
+) {
+    double result = 0.0;
+
+    switch (operation) {
+
+        case OperatorType::Plus:
+
+            result =
+                    left + right;
+
+            break;
+
+        case OperatorType::Minus:
+
+            result =
+                    left - right;
+
+            break;
+
+        case OperatorType::Multiply:
+
+            result =
+                    left * right;
+
+            break;
+
+        case OperatorType::Divide:
+
+            if (isNearZero(right)) {
+                return EvaluationResult::undefined();
+            }
+
+            result =
+                    left / right;
+
+            break;
+
+        case OperatorType::Power:
+
+            /*
+             * 0^negative = undefined
+             */
+            if (
+                    left == 0.0 &&
+                            right < 0.0
+                    ) {
+                return EvaluationResult::undefined();
+            }
+
+            /*
+             * Negative base with a non-integer
+             * exponent is not real-valued.
+             */
+            if (
+                    left < 0.0 &&
+                            std::floor(right) != right
+                    ) {
+                return EvaluationResult::undefined();
+            }
+
+            /*
+             * 0^0 is mathematically indeterminate.
+             */
+            if (
+                    left == 0.0 &&
+                            right == 0.0
+                    ) {
+                return EvaluationResult::undefined();
+            }
+
+            result =
+                    std::pow(
+                            left,
+                            right
+                    );
+
+            break;
+    }
+
+    if (std::isnan(result)) {
+        return EvaluationResult::undefined();
+    }
+
+    if (std::isinf(result)) {
+        return EvaluationResult::overflow();
+    }
+
+    return EvaluationResult::valid(
+            result
+    );
+}
+
+EvaluationResult Evaluator::evaluateFunction(
         const ASTNode& node,
         double argument
 ) {
-
     const std::string& name =
             node.functionName;
 
+    double result = 0.0;
+
+    /*
+     * Trigonometric functions
+     */
+
     if (name == "sin") {
 
-        return std::sin(
-                argument
-        );
-    }
+        result =
+                std::sin(argument);
 
-    if (name == "cos") {
+    } else if (name == "cos") {
 
-        return std::cos(
-                argument
-        );
-    }
+        result =
+                std::cos(argument);
 
-    if (name == "tan") {
+    } else if (name == "tan") {
 
+        /*
+         * tan(x) is undefined when:
+         *
+         * cos(x) = 0
+         *
+         * Detect this before calling tan()
+         * because std::tan() can return a very
+         * large finite value near an asymptote.
+         */
         const double cosine =
                 std::cos(argument);
 
-        if (nearZero(cosine)) {
-            return nanValue();
+        if (isNearZero(cosine)) {
+            return EvaluationResult::undefined();
         }
 
-        return std::sin(argument) /
-               cosine;
-    }
+        result =
+                std::tan(argument);
 
-    if (name == "cot") {
+    } else if (name == "cot") {
 
         const double sine =
                 std::sin(argument);
 
-        if (nearZero(sine)) {
-            return nanValue();
+        if (isNearZero(sine)) {
+            return EvaluationResult::undefined();
         }
 
-        return std::cos(argument) /
-               sine;
-    }
+        result =
+                std::cos(argument) /
+                        sine;
 
-    if (name == "sec") {
+    } else if (name == "sec") {
 
         const double cosine =
                 std::cos(argument);
 
-        if (nearZero(cosine)) {
-            return nanValue();
+        if (isNearZero(cosine)) {
+            return EvaluationResult::undefined();
         }
 
-        return 1.0 /
-               cosine;
-    }
+        result =
+                1.0 /
+                        cosine;
 
-    if (name == "csc") {
+    } else if (name == "csc") {
 
         const double sine =
                 std::sin(argument);
 
-        if (nearZero(sine)) {
-            return nanValue();
+        if (isNearZero(sine)) {
+            return EvaluationResult::undefined();
         }
 
-        return 1.0 /
-               sine;
+        result =
+                1.0 /
+                        sine;
+
     }
-    if (name == "asin") {
+
+        /*
+         * Inverse trigonometric functions
+         */
+
+    else if (name == "asin") {
 
         if (
                 argument < -1.0 ||
-                argument > 1.0
+                        argument > 1.0
                 ) {
-            return nanValue();
+            return EvaluationResult::undefined();
         }
 
-        return std::asin(argument);
-    }
+        result =
+                std::asin(argument);
 
-    if (name == "acos") {
+    } else if (name == "acos") {
 
         if (
                 argument < -1.0 ||
-                argument > 1.0
+                        argument > 1.0
                 ) {
-            return nanValue();
+            return EvaluationResult::undefined();
         }
 
-        return std::acos(argument);
+        result =
+                std::acos(argument);
+
+    } else if (name == "atan") {
+
+        result =
+                std::atan(argument);
     }
 
-    if (name == "atan") {
+        /*
+         * Hyperbolic functions
+         */
 
-        return std::atan(argument);
-    }
+    else if (name == "sinh") {
 
-    if (name == "sinh") {
-
-        const double result =
+        result =
                 std::sinh(argument);
 
-        if (!std::isfinite(result)) {
-            return nanValue();
-        }
+    } else if (name == "cosh") {
 
-        return result;
-    }
-
-    if (name == "cosh") {
-
-        const double result =
+        result =
                 std::cosh(argument);
 
-        if (!std::isfinite(result)) {
-            return nanValue();
-        }
+    } else if (name == "tanh") {
 
-        return result;
+        result =
+                std::tanh(argument);
     }
 
-    if (name == "tanh") {
+        /*
+         * Square / cube root
+         */
 
-        return std::tanh(argument);
-    }
-    if (name == "sqrt") {
+    else if (name == "sqrt") {
 
         if (argument < 0.0) {
-            return nanValue();
+            return EvaluationResult::undefined();
         }
 
-        return std::sqrt(
-                argument
-        );
+        result =
+                std::sqrt(argument);
+
+    } else if (name == "cbrt") {
+
+        result =
+                std::cbrt(argument);
     }
 
-    if (name == "log") {
+        /*
+         * Logarithms
+         */
+
+    else if (name == "ln") {
 
         if (argument <= 0.0) {
-            return nanValue();
+            return EvaluationResult::undefined();
         }
 
-        return std::log10(
-                argument
-        );
-    }
+        result =
+                std::log(argument);
 
-    if (name == "ln") {
+    } else if (name == "log") {
 
         if (argument <= 0.0) {
-            return nanValue();
+            return EvaluationResult::undefined();
         }
 
-        return std::log(
-                argument
-        );
+        result =
+                std::log10(argument);
     }
 
-    if (name == "abs") {
+        /*
+         * Exponential
+         */
 
-        return std::abs(
-                argument
-        );
+    else if (name == "exp") {
+
+        result =
+                std::exp(argument);
     }
 
-    if (name == "exp") {
+        /*
+         * Absolute value
+         */
 
-        const double result =
-                std::exp(
-                        argument
-                );
+    else if (name == "abs") {
 
-        if (!std::isfinite(result)) {
-            return nanValue();
-        }
-
-        return result;
+        result =
+                std::abs(argument);
     }
 
-    throw std::runtime_error(
-            "Unknown function: " +
-            name
+        /*
+         * Unknown function
+         */
+
+    else {
+
+        return EvaluationResult::undefined();
+    }
+
+    if (std::isnan(result)) {
+        return EvaluationResult::undefined();
+    }
+
+    if (std::isinf(result)) {
+        return EvaluationResult::overflow();
+    }
+
+    return EvaluationResult::valid(
+            result
     );
 }

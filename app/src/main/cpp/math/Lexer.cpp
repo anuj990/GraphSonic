@@ -207,22 +207,23 @@ Token Lexer::readIdentifier() {
 
     if (
             identifier == "sin" ||
-            identifier == "cos" ||
-            identifier == "tan" ||
-            identifier == "cot" ||
-            identifier == "sec" ||
-            identifier == "csc" ||
-            identifier == "asin" ||
-            identifier == "acos" ||
-            identifier == "atan" ||
-            identifier == "sinh" ||
-            identifier == "cosh" ||
-            identifier == "tanh" ||
-            identifier == "sqrt" ||
-            identifier == "log" ||
-            identifier == "ln" ||
-            identifier == "abs" ||
-            identifier == "exp"
+                    identifier == "cos" ||
+                    identifier == "tan" ||
+                    identifier == "cot" ||
+                    identifier == "sec" ||
+                    identifier == "csc" ||
+                    identifier == "asin" ||
+                    identifier == "acos" ||
+                    identifier == "atan" ||
+                    identifier == "sinh" ||
+                    identifier == "cosh" ||
+                    identifier == "tanh" ||
+                    identifier == "sqrt" ||
+                    identifier == "cbrt" ||
+                    identifier == "log" ||
+                    identifier == "ln" ||
+                    identifier == "abs" ||
+                    identifier == "exp"
             ) {
 
         return Token(

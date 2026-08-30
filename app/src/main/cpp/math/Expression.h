@@ -1,12 +1,14 @@
 #pragma once
 
 #include "AST.h"
+#include "Evaluator.h"
 
 #include <memory>
 #include <string>
 
 class Expression {
 public:
+
     explicit Expression(
             const std::string& expression
     );
@@ -15,10 +17,15 @@ public:
             double x
     ) const;
 
+    EvaluationResult evaluateResult(
+            double x
+    ) const;
+
     bool isDefined(
             double x
     ) const;
 
 private:
+
     std::unique_ptr<ASTNode> root;
 };
