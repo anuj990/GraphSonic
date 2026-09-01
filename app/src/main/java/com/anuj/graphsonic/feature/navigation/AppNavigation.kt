@@ -17,6 +17,7 @@ fun AppNavigation(
 ) {
     val volume by
     viewModel.volume.collectAsState()
+
     val frequencyMode by
     viewModel.frequencyMode.collectAsState()
 
@@ -40,11 +41,11 @@ fun AppNavigation(
                 AppDestination.Equation.route
         ) {
             EquationScreen(
-                onGraph = { equation ->
+                onGraph = { equations ->
 
                     val success =
-                        viewModel.loadExpression(
-                            equation
+                        viewModel.replaceExpressions(
+                            equations
                         )
 
                     if (success) {
@@ -67,30 +68,34 @@ fun AppNavigation(
 
             val cursor by
             viewModel.cursor.collectAsState()
-            val waveform by
-            viewModel.waveform.collectAsState()
 
             VisualizationScreen(
-                graphLayers = uiState.graphLayers,
+                graphLayers =
+                    uiState.graphLayers,
                 cursor = cursor,
                 listenState = listenState,
-                onCursorChanged = viewModel::updateCursor,
-                evaluateAt = viewModel::evaluateAt,
+                onCursorChanged =
+                    viewModel::updateCursor,
+                evaluateAt =
+                    viewModel::evaluateAt,
                 onViewportChanged =
                     viewModel::onViewportChanged,
                 onStartListening =
                     viewModel::startListening,
                 onStopListening =
                     viewModel::stopListening,
-                frequencyMode = frequencyMode,
-                volume = viewModel.volume.collectAsState().value,
+                frequencyMode =
+                    frequencyMode,
+                volume =
+                    volume,
                 onVolumeChanged =
                     viewModel::setVolume,
-                playbackSpeed = playbackSpeed,
+                playbackSpeed =
+                    playbackSpeed,
                 onFrequencyModeChanged =
                     viewModel::setFrequencyMode,
                 waveform =
-                    viewModel.waveform.collectAsState().value,
+                    waveform,
                 onWaveformChanged =
                     viewModel::setWaveform,
                 onPlaybackSpeedChanged =
