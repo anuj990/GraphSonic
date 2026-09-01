@@ -45,13 +45,11 @@ fun GraphCanvas(
     onViewportChanged: (GraphViewport, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var canvasWidth by
-    remember {
+    var canvasWidth by remember {
         mutableStateOf(0f)
     }
 
-    var viewport by
-    remember {
+    var viewport by remember {
         mutableStateOf(GraphViewport())
     }
 
@@ -88,8 +86,7 @@ fun GraphCanvas(
 
                     val newScale =
                         (
-                                oldScale *
-                                        zoom
+                                oldScale * zoom
                                 ).coerceIn(
                                 10f,
                                 500f
@@ -133,27 +130,28 @@ fun GraphCanvas(
 
                     viewport =
                         viewport.copy(
-                            centerX = (
-                                    beforeZoomX +
-                                            (
-                                                    viewport.centerX.toDouble() -
-                                                            afterZoomX
-                                                    ) -
-                                            pan.x.toDouble() /
-                                            newScale.toDouble()
-                                    ).toFloat(),
-
-                            centerY = (
-                                    beforeZoomY +
-                                            (
-                                                    viewport.centerY.toDouble() -
-                                                            afterZoomY
-                                                    ) +
-                                            pan.y.toDouble() /
-                                            newScale.toDouble()
-                                    ).toFloat(),
-
-                            scale = newScale
+                            centerX =
+                                (
+                                        beforeZoomX +
+                                                (
+                                                        viewport.centerX.toDouble() -
+                                                                afterZoomX
+                                                        ) -
+                                                pan.x.toDouble() /
+                                                newScale.toDouble()
+                                        ).toFloat(),
+                            centerY =
+                                (
+                                        beforeZoomY +
+                                                (
+                                                        viewport.centerY.toDouble() -
+                                                                afterZoomY
+                                                        ) +
+                                                pan.y.toDouble() /
+                                                newScale.toDouble()
+                                        ).toFloat(),
+                            scale =
+                                newScale
                         )
                 }
             }
@@ -161,9 +159,7 @@ fun GraphCanvas(
                 graphLayers,
                 viewport
             ) {
-
                 detectDragGesturesAfterLongPress(
-
                     onDragStart = { position ->
 
                         updateCursor(
@@ -172,14 +168,13 @@ fun GraphCanvas(
                             evaluateAt = evaluateAt,
                             screenWidth =
                                 size.width.toFloat()
-                        ) { newCursor ->
-
+                        ) {
+                                newCursor ->
                             onCursorChanged(
                                 newCursor
                             )
                         }
                     },
-
                     onDrag = { change, _ ->
 
                         updateCursor(
@@ -189,8 +184,8 @@ fun GraphCanvas(
                             evaluateAt = evaluateAt,
                             screenWidth =
                                 size.width.toFloat()
-                        ) { newCursor ->
-
+                        ) {
+                                newCursor ->
                             onCursorChanged(
                                 newCursor
                             )
@@ -198,18 +193,14 @@ fun GraphCanvas(
 
                         change.consume()
                     },
-
                     onDragEnd = {
-
                         onCursorChanged(
                             cursor.copy(
                                 visible = false
                             )
                         )
                     },
-
                     onDragCancel = {
-
                         onCursorChanged(
                             cursor.copy(
                                 visible = false
@@ -238,7 +229,11 @@ fun GraphCanvas(
                     graphData =
                         layer.graphData,
                     viewport =
-                        viewport
+                        viewport,
+                    color =
+                        graphColor(
+                            layer.colorIndex
+                        )
                 )
             }
 
@@ -264,6 +259,25 @@ fun GraphCanvas(
         )
     }
 }
+
+private fun graphColor(
+    index: Int
+): Color {
+
+    return when (
+        index % 8
+    ) {
+        0 -> Color(0xFF1565C0)
+        1 -> Color(0xFFD32F2F)
+        2 -> Color(0xFF2E7D32)
+        3 -> Color(0xFF7B1FA2)
+        4 -> Color(0xFFEF6C00)
+        5 -> Color(0xFF00838F)
+        6 -> Color(0xFF6D4C41)
+        else -> Color(0xFFC2185B)
+    }
+}
+
 private fun DrawScope.drawListenCursors(
     listenState: ListenState,
     viewport: GraphViewport
@@ -300,23 +314,26 @@ private fun DrawScope.drawListenCursors(
             xPosition >= 0f &&
             xPosition <= size.width
         ) {
-
             drawLine(
                 color = Color.Red,
-                start = Offset(
-                    xPosition,
-                    0f
-                ),
-                end = Offset(
-                    xPosition,
-                    size.height
-                ),
+                start =
+                    Offset(
+                        xPosition,
+                        0f
+                    ),
+                end =
+                    Offset(
+                        xPosition,
+                        size.height
+                    ),
                 strokeWidth = 2f
             )
         }
     }
 
-    voices.forEachIndexed { index, voice ->
+    voices.forEachIndexed {
+            index,
+            voice ->
 
         if (
             !voice.isDefined ||
@@ -345,7 +362,8 @@ private fun DrawScope.drawListenCursors(
         }
 
         drawCircle(
-            color = pointerColor(index),
+            color =
+                pointerColor(index),
             radius = 9f,
             center = position
         )
@@ -357,7 +375,6 @@ private fun DrawScope.drawListenCursors(
         )
     }
 }
-
 
 private fun pointerColor(
     index: Int
@@ -374,55 +391,7 @@ private fun pointerColor(
         else -> Color.Yellow
     }
 }
-private fun DrawScope.drawListenCursor(
-    listenState: ListenState,
-    viewport: GraphViewport
-) {
-    if (
-        !listenState.isPlaying ||
-        !listenState.x.isFinite() ||
-        !listenState.y.isFinite()
-    ) {
-        return
-    }
 
-    val position =
-        graphToScreen(
-            x = listenState.x,
-            y = listenState.y,
-            screenWidth = size.width,
-            screenHeight = size.height,
-            viewport = viewport
-        )
-
-    if (
-        position.x < 0f ||
-        position.x > size.width ||
-        position.y < 0f ||
-        position.y > size.height
-    ) {
-        return
-    }
-
-    drawCircle(
-        color = Color.Red,
-        radius = 10f,
-        center = position
-    )
-
-    drawLine(
-        color = Color.Red,
-        start = Offset(
-            position.x,
-            0f
-        ),
-        end = Offset(
-            position.x,
-            size.height
-        ),
-        strokeWidth = 2f
-    )
-}
 private fun updateCursor(
     position: Offset,
     viewport: GraphViewport,
@@ -431,6 +400,7 @@ private fun updateCursor(
     onCursorChanged:
         (GraphCursorState) -> Unit
 ) {
+
     val x =
         screenToGraphX(
             screenX = position.x,
@@ -442,11 +412,13 @@ private fun updateCursor(
         evaluateAt(x)
 
     if (!y.isFinite()) {
+
         onCursorChanged(
             GraphCursorState(
                 visible = false
             )
         )
+
         return
     }
 
@@ -462,12 +434,18 @@ private fun updateCursor(
 private fun DrawScope.drawGrid(
     viewport: GraphViewport
 ) {
+
     val width = size.width
     val height = size.height
 
-    val centerX = width / 2f
-    val centerY = height / 2f
-    val scale = viewport.scale
+    val centerX =
+        width / 2f
+
+    val centerY =
+        height / 2f
+
+    val scale =
+        viewport.scale
 
     val left =
         viewport.centerX -
@@ -490,12 +468,18 @@ private fun DrawScope.drawGrid(
                 scale.toDouble()
 
     val step =
-        chooseGridStep(scale)
+        chooseGridStep(
+            scale
+        )
 
     var x =
-        floor(left / step) * step
+        floor(
+            left / step
+        ) * step
 
-    while (x <= right) {
+    while (
+        x <= right
+    ) {
 
         val screenX =
             centerX +
@@ -505,15 +489,18 @@ private fun DrawScope.drawGrid(
                             ).toFloat()
 
         drawLine(
-            color = Color.LightGray,
-            start = Offset(
-                screenX,
-                0f
-            ),
-            end = Offset(
-                screenX,
-                height
-            ),
+            color =
+                Color.LightGray,
+            start =
+                Offset(
+                    screenX,
+                    0f
+                ),
+            end =
+                Offset(
+                    screenX,
+                    height
+                ),
             strokeWidth = 1f
         )
 
@@ -521,9 +508,13 @@ private fun DrawScope.drawGrid(
     }
 
     var y =
-        floor(bottom / step) * step
+        floor(
+            bottom / step
+        ) * step
 
-    while (y <= top) {
+    while (
+        y <= top
+    ) {
 
         val screenY =
             centerY -
@@ -533,15 +524,18 @@ private fun DrawScope.drawGrid(
                             ).toFloat()
 
         drawLine(
-            color = Color.LightGray,
-            start = Offset(
-                0f,
-                screenY
-            ),
-            end = Offset(
-                width,
-                screenY
-            ),
+            color =
+                Color.LightGray,
+            start =
+                Offset(
+                    0f,
+                    screenY
+                ),
+            end =
+                Offset(
+                    width,
+                    screenY
+                ),
             strokeWidth = 1f
         )
 
@@ -552,11 +546,15 @@ private fun DrawScope.drawGrid(
 private fun DrawScope.drawAxes(
     viewport: GraphViewport
 ) {
+
     val width = size.width
     val height = size.height
 
-    val centerX = width / 2f
-    val centerY = height / 2f
+    val centerX =
+        width / 2f
+
+    val centerY =
+        height / 2f
 
     val xAxis =
         centerX -
@@ -572,32 +570,42 @@ private fun DrawScope.drawAxes(
                                 viewport.scale.toDouble()
                         ).toFloat()
 
-    if (xAxis in 0f..width) {
+    if (
+        xAxis in 0f..width
+    ) {
+
         drawLine(
             color = Color.Black,
-            start = Offset(
-                xAxis,
-                0f
-            ),
-            end = Offset(
-                xAxis,
-                height
-            ),
+            start =
+                Offset(
+                    xAxis,
+                    0f
+                ),
+            end =
+                Offset(
+                    xAxis,
+                    height
+                ),
             strokeWidth = 2f
         )
     }
 
-    if (yAxis in 0f..height) {
+    if (
+        yAxis in 0f..height
+    ) {
+
         drawLine(
             color = Color.Black,
-            start = Offset(
-                0f,
-                yAxis
-            ),
-            end = Offset(
-                width,
-                yAxis
-            ),
+            start =
+                Offset(
+                    0f,
+                    yAxis
+                ),
+            end =
+                Offset(
+                    width,
+                    yAxis
+                ),
             strokeWidth = 2f
         )
     }
@@ -605,13 +613,19 @@ private fun DrawScope.drawAxes(
 
 private fun DrawScope.drawGraph(
     graphData: GraphData,
-    viewport: GraphViewport
+    viewport: GraphViewport,
+    color: Color
 ) {
-    val path = Path()
 
-    var pathStarted = false
+    val path =
+        Path()
 
-    for (point in graphData.points) {
+    var pathStarted =
+        false
+
+    for (
+    point in graphData.points
+    ) {
 
         if (
             !point.x.isFinite() ||
@@ -662,11 +676,13 @@ private fun DrawScope.drawGraph(
 
     drawPath(
         path = path,
-        color = Color.Black,
-        style = Stroke(
-            width = 4f,
-            cap = StrokeCap.Round
-        )
+        color = color,
+        style =
+            Stroke(
+                width = 4f,
+                cap =
+                    StrokeCap.Round
+            )
     )
 }
 
@@ -674,12 +690,18 @@ private fun DrawScope.drawAxisLabels(
     viewport: GraphViewport,
     textMeasurer: TextMeasurer
 ) {
+
     val width = size.width
     val height = size.height
 
-    val centerX = width / 2f
-    val centerY = height / 2f
-    val scale = viewport.scale
+    val centerX =
+        width / 2f
+
+    val centerY =
+        height / 2f
+
+    val scale =
+        viewport.scale
 
     val left =
         viewport.centerX -
@@ -702,7 +724,9 @@ private fun DrawScope.drawAxisLabels(
                 scale.toDouble()
 
     val step =
-        chooseGridStep(scale)
+        chooseGridStep(
+            scale
+        )
 
     val axisX =
         centerX -
@@ -720,15 +744,23 @@ private fun DrawScope.drawAxisLabels(
 
     val textStyle =
         TextStyle(
-            color = Color.DarkGray
+            color =
+                Color.DarkGray
         )
 
     var x =
-        ceil(left / step) * step
+        ceil(
+            left / step
+        ) * step
 
-    while (x <= right) {
+    while (
+        x <= right
+    ) {
 
-        if (abs(x) > step / 100.0) {
+        if (
+            abs(x) >
+            step / 100.0
+        ) {
 
             val screenX =
                 centerX +
@@ -738,16 +770,24 @@ private fun DrawScope.drawAxisLabels(
                                 ).toFloat()
 
             drawText(
-                textMeasurer = textMeasurer,
-                text = formatAxisValue(x),
-                topLeft = Offset(
-                    screenX + 4f,
-                    (axisY + 4f).coerceIn(
-                        0f,
-                        height - 24f
-                    )
-                ),
-                style = textStyle
+                textMeasurer =
+                    textMeasurer,
+                text =
+                    formatAxisValue(
+                        x
+                    ),
+                topLeft =
+                    Offset(
+                        screenX + 4f,
+                        (
+                                axisY + 4f
+                                ).coerceIn(
+                                0f,
+                                height - 24f
+                            )
+                    ),
+                style =
+                    textStyle
             )
         }
 
@@ -755,11 +795,18 @@ private fun DrawScope.drawAxisLabels(
     }
 
     var y =
-        ceil(bottom / step) * step
+        ceil(
+            bottom / step
+        ) * step
 
-    while (y <= top) {
+    while (
+        y <= top
+    ) {
 
-        if (abs(y) > step / 100.0) {
+        if (
+            abs(y) >
+            step / 100.0
+        ) {
 
             val screenY =
                 centerY -
@@ -769,16 +816,24 @@ private fun DrawScope.drawAxisLabels(
                                 ).toFloat()
 
             drawText(
-                textMeasurer = textMeasurer,
-                text = formatAxisValue(y),
-                topLeft = Offset(
-                    (axisX + 8f).coerceIn(
-                        0f,
-                        width - 40f
+                textMeasurer =
+                    textMeasurer,
+                text =
+                    formatAxisValue(
+                        y
                     ),
-                    screenY - 20f
-                ),
-                style = textStyle
+                topLeft =
+                    Offset(
+                        (
+                                axisX + 8f
+                                ).coerceIn(
+                                0f,
+                                width - 40f
+                            ),
+                        screenY - 20f
+                    ),
+                style =
+                    textStyle
             )
         }
 
@@ -789,8 +844,10 @@ private fun DrawScope.drawAxisLabels(
 private fun chooseGridStep(
     scale: Float
 ): Double {
+
     val rawStep =
-        80.0 / scale.toDouble()
+        80.0 /
+                scale.toDouble()
 
     val exponent =
         floor(
@@ -798,30 +855,49 @@ private fun chooseGridStep(
         )
 
     val base =
-        10.0.pow(exponent)
+        10.0.pow(
+            exponent
+        )
 
     val normalized =
         rawStep / base
 
     return when {
-        normalized <= 1.0 -> base
-        normalized <= 2.0 -> 2.0 * base
-        normalized <= 5.0 -> 5.0 * base
-        else -> 10.0 * base
+
+        normalized <= 1.0 ->
+            base
+
+        normalized <= 2.0 ->
+            2.0 * base
+
+        normalized <= 5.0 ->
+            5.0 * base
+
+        else ->
+            10.0 * base
     }
 }
 
 private fun formatAxisValue(
     value: Double
 ): String {
+
     val rounded =
-        kotlin.math.round(value)
+        kotlin.math.round(
+            value
+        )
 
     return if (
-        abs(value - rounded) < 1e-9
+        abs(
+            value - rounded
+        ) < 1e-9
     ) {
-        rounded.toLong().toString()
+        rounded
+            .toLong()
+            .toString()
     } else {
-        "%.2f".format(value)
+        "%.2f".format(
+            value
+        )
     }
 }

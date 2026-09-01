@@ -15,6 +15,7 @@ fun AppNavigation(
     navController: NavHostController,
     viewModel: VisualizationViewModel
 ) {
+
     val volume by
     viewModel.volume.collectAsState()
 
@@ -31,7 +32,8 @@ fun AppNavigation(
     viewModel.waveform.collectAsState()
 
     NavHost(
-        navController = navController,
+        navController =
+            navController,
         startDestination =
             AppDestination.Equation.route
     ) {
@@ -40,17 +42,25 @@ fun AppNavigation(
             route =
                 AppDestination.Equation.route
         ) {
+
             EquationScreen(
-                onGraph = { equations ->
+                onGraph = {
+                        equations ->
 
                     val success =
-                        viewModel.replaceExpressions(
-                            equations
-                        )
+                        viewModel
+                            .replaceExpressions(
+                                equations
+                            )
 
-                    if (success) {
+                    if (
+                        success
+                    ) {
+
                         navController.navigate(
-                            AppDestination.Visualization.route
+                            AppDestination
+                                .Visualization
+                                .route
                         )
                     }
 
@@ -61,19 +71,26 @@ fun AppNavigation(
 
         composable(
             route =
-                AppDestination.Visualization.route
+                AppDestination
+                    .Visualization
+                    .route
         ) {
+
             val uiState by
-            viewModel.uiState.collectAsState()
+            viewModel.uiState
+                .collectAsState()
 
             val cursor by
-            viewModel.cursor.collectAsState()
+            viewModel.cursor
+                .collectAsState()
 
             VisualizationScreen(
                 graphLayers =
                     uiState.graphLayers,
-                cursor = cursor,
-                listenState = listenState,
+                cursor =
+                    cursor,
+                listenState =
+                    listenState,
                 onCursorChanged =
                     viewModel::updateCursor,
                 evaluateAt =
@@ -84,6 +101,15 @@ fun AppNavigation(
                     viewModel::startListening,
                 onStopListening =
                     viewModel::stopListening,
+                onExpressionEnabledChanged =
+                    viewModel::setExpressionEnabled,
+                onExpressionAudioEnabledChanged =
+                    viewModel::setExpressionAudioEnabled,
+                onExpressionRemoved =
+                    viewModel::removeExpression,
+                onEditExpressions = {
+                    navController.popBackStack()
+                },
                 frequencyMode =
                     frequencyMode,
                 volume =

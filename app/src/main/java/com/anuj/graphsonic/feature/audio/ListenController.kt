@@ -19,9 +19,9 @@ class ListenController(
     private data class EquationVoice(
         val id: Long,
         var waveform: Waveform,
-        var segments: List<GraphSegment> = emptyList()
+        var segments: List<GraphSegment> = emptyList(),
+        var audioEnabled: Boolean = true
     )
-
     private val audioEngine =
         AudioEngine()
 
@@ -99,10 +99,13 @@ class ListenController(
     fun removeGraphData(
         id: Long
     ) {
+        val index =
+            voiceIndex(id)
+
         equations.remove(id)
 
         audioEngine.clearVoice(
-            voiceIndex(id)
+            index
         )
 
         _state.value =
@@ -114,36 +117,29 @@ class ListenController(
             )
     }
 
-    fun setEnabled(
+    fun setAudioEnabled(
         id: Long,
         enabled: Boolean
     ) {
-        val index =
-            voiceIndex(id)
+        val equation =
+            equations[id]
+                ?: return
+
+        equation.audioEnabled =
+            enabled
+
+        if (!enabled) {
+            audioEngine.clearVoice(
+                voiceIndex(id)
+            )
+        }
+    }
+
+    fun setEnabled(id: Long, enabled: Boolean) {
+        val index = voiceIndex(id)
 
         if (!enabled) {
             audioEngine.clearVoice(index)
-
-            val current =
-                _state.value.voices
-
-            _state.value =
-                _state.value.copy(
-                    voices =
-                        current.map { voice ->
-                            if (
-                                voice.equationId == id
-                            ) {
-                                voice.copy(
-                                    isDefined = false,
-                                    frequency = 0.0,
-                                    note = null
-                                )
-                            } else {
-                                voice
-                            }
-                        }
-                )
         }
     }
 
@@ -155,12 +151,10 @@ class ListenController(
             return
         }
 
-        val usable =
-            equations.values.filter {
-                it.segments.any { segment ->
-                    segment.points.size >= 2
-                }
-            }
+        val usable = equations.values.filter {
+            it.audioEnabled &&
+                    it.segments.any { segment -> segment.points.size >= 2 }
+        }
 
         if (
             usable.isEmpty()
@@ -195,10 +189,15 @@ class ListenController(
                     val states =
                         mutableListOf<ListenVoiceState>()
 
-                    var activeVoices =
-                        0
+                    usable.forEachIndexed {
+                            index,
+                            equation ->
 
-                    usable.forEachIndexed { index, equation ->
+                        if (
+                            !equation.audioEnabled
+                        ) {
+                            return@forEachIndexed
+                        }
 
                         val y =
                             evaluateAt(
@@ -251,8 +250,6 @@ class ListenController(
                                         }
                                 )
 
-                            activeVoices++
-
                         } else {
 
                             audioEngine.setVoice(
@@ -273,24 +270,15 @@ class ListenController(
                         }
                     }
 
-                    for (
-                    index in usable.indices
-                    ) {
-                        if (
-                            index >= states.size
-                        ) {
-                            audioEngine.clearVoice(
-                                index
-                            )
-                        }
-                    }
-
                     _state.value =
                         ListenState(
                             isPlaying = true,
                             progress =
-                                calculateProgress(x),
-                            voices = states
+                                calculateProgress(
+                                    x
+                                ),
+                            voices =
+                                states
                         )
 
                     x +=
@@ -468,6 +456,7 @@ class ListenController(
     fun release() {
 
         stop()
+
         audioEngine.release()
     }
 }
