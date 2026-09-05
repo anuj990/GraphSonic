@@ -27,6 +27,14 @@ class VisualizationViewModel : ViewModel() {
 
     companion object {
         private const val MAX_EQUATIONS = 8
+
+        private const val INITIAL_SAMPLE_COUNT = 3000
+
+        private const val SAMPLES_PER_PIXEL = 3.0
+
+        private const val MIN_VIEWPORT_SAMPLES = 1000
+
+        private const val MAX_VIEWPORT_SAMPLES = 20000
     }
 
     private val nativeBridge =
@@ -178,7 +186,8 @@ class VisualizationViewModel : ViewModel() {
                         handle,
                     xMin = -10.0,
                     xMax = 10.0,
-                    sampleCount = 2000
+                    sampleCount =
+                        INITIAL_SAMPLE_COUNT
                 )
 
             val colorIndex =
@@ -313,7 +322,8 @@ class VisualizationViewModel : ViewModel() {
                             handle,
                         xMin = -10.0,
                         xMax = 10.0,
-                        sampleCount = 2000
+                        sampleCount =
+                            INITIAL_SAMPLE_COUNT
                     )
 
                 newHandles[id] =
@@ -780,6 +790,28 @@ class VisualizationViewModel : ViewModel() {
         }
     }
 
+    private fun calculateViewportSampleCount(
+        screenWidth: Float
+    ): Int {
+
+        if (
+            !screenWidth.isFinite() ||
+            screenWidth <= 0f
+        ) {
+            return MIN_VIEWPORT_SAMPLES
+        }
+
+        return (
+                screenWidth.toDouble() *
+                        SAMPLES_PER_PIXEL
+                )
+            .toInt()
+            .coerceIn(
+                MIN_VIEWPORT_SAMPLES,
+                MAX_VIEWPORT_SAMPLES
+            )
+    }
+
     private fun resampleGraphs(
         viewport: GraphViewport,
         screenWidth: Float
@@ -829,15 +861,9 @@ class VisualizationViewModel : ViewModel() {
         }
 
         val sampleCount =
-            (
-                    (xMax - xMin) *
-                            100.0
-                    )
-                .toInt()
-                .coerceIn(
-                    1000,
-                    10000
-                )
+            calculateViewportSampleCount(
+                screenWidth
+            )
 
         samplingGeneration +=
             1L

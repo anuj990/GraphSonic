@@ -23,7 +23,6 @@ private:
             int depth,
             int maxDepth,
             double minWidth,
-            double maxYJump,
             std::vector<double>& points
     );
 
