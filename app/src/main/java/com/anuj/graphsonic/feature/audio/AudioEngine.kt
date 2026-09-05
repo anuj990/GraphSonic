@@ -3,6 +3,7 @@ package com.anuj.graphsonic.feature.audio
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.floor
@@ -19,17 +20,24 @@ class AudioEngine {
     )
 
     @Volatile
-    private var masterVolume = 0.15
+    private var masterVolume =
+        0.15
 
     @Volatile
-    private var defaultWaveform = Waveform.Sine
+    private var defaultWaveform =
+        Waveform.Sine
 
-    private val sampleRate = 44100
+    private val sampleRate =
+        44100
 
-    private val minFrequency = 80.0
-    private val maxFrequency = 2000.0
+    private val minFrequency =
+        80.0
 
-    private val maxVoices = 16
+    private val maxFrequency =
+        2000.0
+
+    private val maxVoices =
+        16
 
     private val bufferSize =
         AudioTrack.getMinBufferSize(
@@ -54,7 +62,9 @@ class AudioEngine {
             )
             .setAudioFormat(
                 AudioFormat.Builder()
-                    .setSampleRate(sampleRate)
+                    .setSampleRate(
+                        sampleRate
+                    )
                     .setEncoding(
                         AudioFormat.ENCODING_PCM_16BIT
                     )
@@ -72,7 +82,7 @@ class AudioEngine {
             .build()
 
     private val voices =
-        arrayOfNulls<Voice>(
+        AtomicReferenceArray<Voice?>(
             maxVoices
         )
 
@@ -88,10 +98,12 @@ class AudioEngine {
             minFrequency
         }
 
-    private var audioJob: Thread? = null
+    private var audioJob:
+            Thread? = null
 
     @Volatile
-    private var running = false
+    private var running =
+        false
 
     fun setVolume(
         value: Double
@@ -106,19 +118,22 @@ class AudioEngine {
     fun setWaveform(
         value: Waveform
     ) {
-        defaultWaveform = value
+        defaultWaveform =
+            value
 
         for (
         index in 0 until maxVoices
         ) {
             val voice =
-                voices[index]
+                voices.get(index)
 
             if (voice != null) {
-                voices[index] =
+                voices.set(
+                    index,
                     voice.copy(
                         waveform = value
                     )
+                )
             }
         }
     }
@@ -129,7 +144,8 @@ class AudioEngine {
         setVoice(
             index = 0,
             frequency = frequency,
-            waveform = defaultWaveform,
+            waveform =
+                defaultWaveform,
             active = true
         )
     }
@@ -147,7 +163,8 @@ class AudioEngine {
             return
         }
 
-        voices[index] =
+        voices.set(
+            index,
             Voice(
                 frequency =
                     frequency.coerceIn(
@@ -159,9 +176,12 @@ class AudioEngine {
                         0.0,
                         1.0
                     ),
-                waveform = waveform,
-                active = active
+                waveform =
+                    waveform,
+                active =
+                    active
             )
+        )
     }
 
     fun clearVoice(
@@ -173,8 +193,14 @@ class AudioEngine {
             return
         }
 
-        voices[index] = null
-        phases[index] = 0.0
+        voices.set(
+            index,
+            null
+        )
+
+        phases[index] =
+            0.0
+
         currentFrequencies[index] =
             minFrequency
     }
@@ -183,7 +209,9 @@ class AudioEngine {
         for (
         index in 0 until maxVoices
         ) {
-            clearVoice(index)
+            clearVoice(
+                index
+            )
         }
     }
 
@@ -193,7 +221,8 @@ class AudioEngine {
             return
         }
 
-        running = true
+        running =
+            true
 
         audioTrack.play()
 
@@ -209,9 +238,7 @@ class AudioEngine {
         phase: Double,
         waveform: Waveform
     ): Double {
-
         return when (waveform) {
-
             Waveform.Sine ->
                 sin(phase)
 
@@ -229,7 +256,9 @@ class AudioEngine {
                         )
 
             Waveform.Square ->
-                if (phase < PI) {
+                if (
+                    phase < PI
+                ) {
                     1.0
                 } else {
                     -1.0
@@ -276,10 +305,14 @@ class AudioEngine {
                 ) {
 
                     val voice =
-                        voices[voiceIndex]
+                        voices.get(
+                            voiceIndex
+                        )
                             ?: continue
 
-                    if (!voice.active) {
+                    if (
+                        !voice.active
+                    ) {
                         continue
                     }
 
@@ -296,7 +329,9 @@ class AudioEngine {
 
                     mixedSample +=
                         generateSample(
-                            phases[voiceIndex],
+                            phases[
+                                voiceIndex
+                            ],
                             voice.waveform
                         ) *
                                 voice.volume
@@ -309,14 +344,20 @@ class AudioEngine {
                                 ] /
                                 sampleRate.toDouble()
 
-                    phases[voiceIndex] +=
+                    phases[
+                        voiceIndex
+                    ] +=
                         phaseStep
 
                     if (
-                        phases[voiceIndex] >=
+                        phases[
+                            voiceIndex
+                        ] >=
                         2.0 * PI
                     ) {
-                        phases[voiceIndex] -=
+                        phases[
+                            voiceIndex
+                        ] -=
                             2.0 * PI
                     }
 
@@ -349,17 +390,20 @@ class AudioEngine {
                     output
             }
 
-            audioTrack.write(
-                samples,
-                0,
-                samples.size
-            )
+            if (running) {
+                audioTrack.write(
+                    samples,
+                    0,
+                    samples.size
+                )
+            }
         }
     }
 
     fun stop() {
 
-        running = false
+        running =
+            false
 
         audioJob?.interrupt()
         audioJob = null
@@ -377,6 +421,7 @@ class AudioEngine {
     fun release() {
 
         stop()
+
         audioTrack.release()
     }
 }

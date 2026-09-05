@@ -25,11 +25,17 @@ data class VisualizationUiState(
 
 class VisualizationViewModel : ViewModel() {
 
+    companion object {
+        private const val MAX_EQUATIONS = 8
+    }
+
     private val nativeBridge =
         NativeBridge()
 
     private val graphEngine =
-        GraphEngine(nativeBridge)
+        GraphEngine(
+            nativeBridge
+        )
 
     private val listenController =
         ListenController(
@@ -40,7 +46,8 @@ class VisualizationViewModel : ViewModel() {
     private val viewportController =
         GraphViewportController(
             scope = viewModelScope,
-            onViewportSettled = ::resampleGraphs
+            onViewportSettled =
+                ::resampleGraphs
         )
 
     private val _uiState =
@@ -112,10 +119,127 @@ class VisualizationViewModel : ViewModel() {
     fun loadExpression(
         expression: String
     ): Boolean {
-
         return replaceExpressions(
             listOf(expression)
         )
+    }
+
+    fun addExpression(
+        expression: String
+    ): Boolean {
+
+        val cleaned =
+            expression.trim()
+
+        if (cleaned.isEmpty()) {
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Enter an equation"
+                )
+            }
+
+            return false
+        }
+
+        if (
+            _uiState.value.graphLayers.size >=
+            MAX_EQUATIONS
+        ) {
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Maximum 8 equations"
+                )
+            }
+
+            return false
+        }
+
+        return try {
+
+            val handle =
+                nativeBridge.createExpression(
+                    cleaned
+                )
+
+            if (
+                handle == 0L
+            ) {
+                throw IllegalArgumentException()
+            }
+
+            val id =
+                nextLayerId++
+
+            val graph =
+                graphEngine.generateGraph(
+                    expressionHandle =
+                        handle,
+                    xMin = -10.0,
+                    xMax = 10.0,
+                    sampleCount = 2000
+                )
+
+            val colorIndex =
+                _uiState.value.graphLayers.size % 8
+
+            val layer =
+                GraphLayer(
+                    id = id,
+                    expression = cleaned,
+                    graphData = graph,
+                    enabled = true,
+                    audioEnabled = true,
+                    colorIndex = colorIndex
+                )
+
+            expressionHandles[id] =
+                handle
+
+            listenController.setGraphData(
+                id = id,
+                graphData = graph
+            )
+
+            listenController.setExpression(
+                id = id,
+                expression = cleaned
+            )
+
+            _uiState.update {
+                val layers =
+                    it.graphLayers + layer
+
+                it.copy(
+                    graphLayers =
+                        layers,
+                    graphData =
+                        layers
+                            .firstOrNull()
+                            ?.graphData
+                            ?: GraphData(
+                                emptyList()
+                            ),
+                    errorMessage = null
+                )
+            }
+
+            true
+
+        } catch (
+            exception: Exception
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Equation is invalid"
+                )
+            }
+
+            false
+        }
     }
 
     fun replaceExpressions(
@@ -131,24 +255,28 @@ class VisualizationViewModel : ViewModel() {
                     it.isNotEmpty()
                 }
 
-        if (cleaned.isEmpty()) {
-
-            _uiState.value =
-                _uiState.value.copy(
+        if (
+            cleaned.isEmpty()
+        ) {
+            _uiState.update {
+                it.copy(
                     errorMessage =
                         "Enter at least one equation"
                 )
+            }
 
             return false
         }
 
-        if (cleaned.size > 16) {
-
-            _uiState.value =
-                _uiState.value.copy(
+        if (
+            cleaned.size > MAX_EQUATIONS
+        ) {
+            _uiState.update {
+                it.copy(
                     errorMessage =
-                        "Maximum 16 equations"
+                        "Maximum 8 equations"
                 )
+            }
 
             return false
         }
@@ -170,17 +298,14 @@ class VisualizationViewModel : ViewModel() {
                         expression
                     )
 
-                if (handle == 0L) {
-                    throw IllegalArgumentException(
-                        "Invalid equation"
-                    )
+                if (
+                    handle == 0L
+                ) {
+                    throw IllegalArgumentException()
                 }
 
                 val id =
                     nextLayerId++
-
-                newHandles[id] =
-                    handle
 
                 val graph =
                     graphEngine.generateGraph(
@@ -191,15 +316,20 @@ class VisualizationViewModel : ViewModel() {
                         sampleCount = 2000
                     )
 
+                newHandles[id] =
+                    handle
+
                 newLayers +=
                     GraphLayer(
                         id = id,
-                        expression = expression,
-                        graphData = graph,
+                        expression =
+                            expression,
+                        graphData =
+                            graph,
                         enabled = true,
                         audioEnabled = true,
                         colorIndex =
-                            index
+                            index % 8
                     )
             }
 
@@ -209,11 +339,21 @@ class VisualizationViewModel : ViewModel() {
                 newHandles
             )
 
-            newLayers.forEach { layer ->
+            newLayers.forEach {
+                    layer ->
+
                 listenController.setGraphData(
-                    id = layer.id,
+                    id =
+                        layer.id,
                     graphData =
                         layer.graphData
+                )
+
+                listenController.setExpression(
+                    id =
+                        layer.id,
+                    expression =
+                        layer.expression
                 )
             }
 
@@ -249,12 +389,13 @@ class VisualizationViewModel : ViewModel() {
                 )
             }
 
-            _uiState.value =
-                _uiState.value.copy(
+            _uiState.update {
+                it.copy(
                     errorMessage =
                         "One or more equations are invalid",
                     isLoading = false
                 )
+            }
 
             false
         }
@@ -262,12 +403,14 @@ class VisualizationViewModel : ViewModel() {
 
     private fun clearExpressionsInternal() {
 
-        samplingGeneration += 1L
+        samplingGeneration +=
+            1L
 
         listenController.reset()
 
         expressionHandles.values.forEach {
                 handle ->
+
             nativeBridge.destroyExpression(
                 handle
             )
@@ -296,7 +439,9 @@ class VisualizationViewModel : ViewModel() {
                 id
             )
 
-        if (handle != null) {
+        if (
+            handle != null
+        ) {
             nativeBridge.destroyExpression(
                 handle
             )
@@ -306,44 +451,80 @@ class VisualizationViewModel : ViewModel() {
             id
         )
 
-        val remainingLayers =
+        val remaining =
             _uiState.value.graphLayers
                 .filter {
                     it.id != id
                 }
+                .mapIndexed {
+                        index,
+                        layer ->
 
-        _uiState.value =
-            _uiState.value.copy(
+                    layer.copy(
+                        colorIndex =
+                            index % 8
+                    )
+                }
+
+        _uiState.update {
+            it.copy(
                 graphLayers =
-                    remainingLayers,
+                    remaining,
                 graphData =
-                    remainingLayers
+                    remaining
                         .firstOrNull()
                         ?.graphData
                         ?: GraphData(
                             emptyList()
                         )
             )
+        }
     }
 
-    fun setExpressionEnabled(id: Long, enabled: Boolean) {
-        _uiState.update { state ->
+    fun setExpressionEnabled(
+        id: Long,
+        enabled: Boolean
+    ) {
+
+        _uiState.update {
+                state ->
+
             state.copy(
-                graphLayers = state.graphLayers.map { layer ->
-                    if (layer.id == id) {
-                        layer.copy(
-                            enabled = enabled,
-                            audioEnabled = enabled
-                        )
-                    } else {
-                        layer
+                graphLayers =
+                    state.graphLayers.map {
+                            layer ->
+
+                        if (
+                            layer.id == id
+                        ) {
+                            layer.copy(
+                                enabled =
+                                    enabled
+                            )
+                        } else {
+                            layer
+                        }
                     }
-                }
             )
         }
 
-        listenController.setEnabled(id, enabled)
-        listenController.setAudioEnabled(id, enabled)
+        if (!enabled) {
+            listenController.setEnabled(
+                id,
+                false
+            )
+        } else {
+            val layer =
+                _uiState.value.graphLayers
+                    .firstOrNull {
+                        it.id == id
+                    }
+
+            listenController.setEnabled(
+                id,
+                layer?.audioEnabled == true
+            )
+        }
     }
 
     fun setExpressionAudioEnabled(
@@ -351,11 +532,14 @@ class VisualizationViewModel : ViewModel() {
         enabled: Boolean
     ) {
 
-        _uiState.value =
-            _uiState.value.copy(
+        _uiState.update {
+                state ->
+
+            state.copy(
                 graphLayers =
-                    _uiState.value.graphLayers.map {
+                    state.graphLayers.map {
                             layer ->
+
                         if (
                             layer.id == id
                         ) {
@@ -368,22 +552,28 @@ class VisualizationViewModel : ViewModel() {
                         }
                     }
             )
+        }
+
+        val layer =
+            _uiState.value.graphLayers
+                .firstOrNull {
+                    it.id == id
+                }
 
         listenController.setAudioEnabled(
             id = id,
-            enabled = enabled
+            enabled =
+                enabled &&
+                        layer?.enabled == true
         )
     }
 
     fun clearError() {
 
-        if (
-            _uiState.value.errorMessage != null
-        ) {
-            _uiState.value =
-                _uiState.value.copy(
-                    errorMessage = null
-                )
+        _uiState.update {
+            it.copy(
+                errorMessage = null
+            )
         }
     }
 
@@ -517,7 +707,7 @@ class VisualizationViewModel : ViewModel() {
 
         if (
             !viewport.scale.isFinite() ||
-            viewport.scale <= 0.0
+            viewport.scale <= 0f
         ) {
             return
         }
@@ -572,20 +762,22 @@ class VisualizationViewModel : ViewModel() {
 
         listenController.start()
 
-        _uiState.value =
-            _uiState.value.copy(
+        _uiState.update {
+            it.copy(
                 isListening = true
             )
+        }
     }
 
     fun stopListening() {
 
         listenController.stop()
 
-        _uiState.value =
-            _uiState.value.copy(
+        _uiState.update {
+            it.copy(
                 isListening = false
             )
+        }
     }
 
     private fun resampleGraphs(
@@ -608,7 +800,7 @@ class VisualizationViewModel : ViewModel() {
 
         if (
             !viewport.scale.isFinite() ||
-            viewport.scale <= 0.0
+            viewport.scale <= 0f
         ) {
             return
         }
@@ -647,28 +839,30 @@ class VisualizationViewModel : ViewModel() {
                     10000
                 )
 
-        samplingGeneration += 1L
+        samplingGeneration +=
+            1L
 
         val generation =
             samplingGeneration
 
-        _uiState.value =
-            _uiState.value.copy(
+        _uiState.update {
+            it.copy(
                 isLoading = true
             )
+        }
 
         val handles =
             expressionHandles.toMap()
+
+        val layers =
+            _uiState.value.graphLayers.toList()
 
         viewModelScope.launch(
             Dispatchers.Default
         ) {
 
-            val currentLayers =
-                _uiState.value.graphLayers
-
             val updatedLayers =
-                currentLayers.map {
+                layers.map {
                         layer ->
 
                     val handle =
@@ -691,12 +885,22 @@ class VisualizationViewModel : ViewModel() {
                             )
 
                         listenController.setGraphData(
-                            id = layer.id,
-                            graphData = graph
+                            id =
+                                layer.id,
+                            graphData =
+                                graph
+                        )
+
+                        listenController.setExpression(
+                            id =
+                                layer.id,
+                            expression =
+                                layer.expression
                         )
 
                         layer.copy(
-                            graphData = graph
+                            graphData =
+                                graph
                         )
                     }
                 }
@@ -706,8 +910,10 @@ class VisualizationViewModel : ViewModel() {
                 samplingGeneration
             ) {
 
-                _uiState.value =
-                    _uiState.value.copy(
+                _uiState.update {
+                        state ->
+
+                    state.copy(
                         graphLayers =
                             updatedLayers,
                         graphData =
@@ -719,13 +925,15 @@ class VisualizationViewModel : ViewModel() {
                                 ),
                         isLoading = false
                     )
+                }
             }
         }
     }
 
     override fun onCleared() {
 
-        samplingGeneration += 1L
+        samplingGeneration +=
+            1L
 
         viewportController.clear()
 
@@ -733,6 +941,7 @@ class VisualizationViewModel : ViewModel() {
 
         expressionHandles.values.forEach {
                 handle ->
+
             nativeBridge.destroyExpression(
                 handle
             )

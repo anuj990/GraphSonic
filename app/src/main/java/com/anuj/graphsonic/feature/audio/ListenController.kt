@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.sqrt
 
 class ListenController(
     private val scope: CoroutineScope,
@@ -18,10 +19,12 @@ class ListenController(
 
     private data class EquationVoice(
         val id: Long,
+        var expression: String = "",
         var waveform: Waveform,
         var segments: List<GraphSegment> = emptyList(),
         var audioEnabled: Boolean = true
     )
+
     private val audioEngine =
         AudioEngine()
 
@@ -76,6 +79,7 @@ class ListenController(
         )
     }
 
+    @Synchronized
     fun setGraphData(
         id: Long,
         graphData: GraphData
@@ -96,6 +100,26 @@ class ListenController(
             voice
     }
 
+    @Synchronized
+    fun setExpression(
+        id: Long,
+        expression: String
+    ) {
+        val voice =
+            equations[id]
+                ?: EquationVoice(
+                    id = id,
+                    waveform = defaultWaveform
+                )
+
+        voice.expression =
+            expression
+
+        equations[id] =
+            voice
+    }
+
+    @Synchronized
     fun removeGraphData(
         id: Long
     ) {
@@ -117,6 +141,7 @@ class ListenController(
             )
     }
 
+    @Synchronized
     fun setAudioEnabled(
         id: Long,
         enabled: Boolean
@@ -135,11 +160,22 @@ class ListenController(
         }
     }
 
-    fun setEnabled(id: Long, enabled: Boolean) {
-        val index = voiceIndex(id)
+    @Synchronized
+    fun setEnabled(
+        id: Long,
+        enabled: Boolean
+    ) {
+        val equation =
+            equations[id]
+                ?: return
+
+        equation.audioEnabled =
+            enabled
 
         if (!enabled) {
-            audioEngine.clearVoice(index)
+            audioEngine.clearVoice(
+                voiceIndex(id)
+            )
         }
     }
 
@@ -151,14 +187,17 @@ class ListenController(
             return
         }
 
-        val usable = equations.values.filter {
-            it.audioEnabled &&
-                    it.segments.any { segment -> segment.points.size >= 2 }
-        }
+        val hasUsableVoice =
+            synchronized(this) {
+                equations.values.any {
+                    it.audioEnabled &&
+                            it.segments.any { segment ->
+                                segment.points.size >= 2
+                            }
+                }
+            }
 
-        if (
-            usable.isEmpty()
-        ) {
+        if (!hasUsableVoice) {
             _state.value =
                 ListenState()
 
@@ -186,18 +225,43 @@ class ListenController(
                         x = startX
                     }
 
+                    val activeEquations =
+                        synchronized(this@ListenController) {
+                            equations.values
+                                .filter {
+                                    it.audioEnabled &&
+                                            it.segments.any { segment ->
+                                                segment.points.size >= 2
+                                            }
+                                }
+                                .toList()
+                        }
+
+                    if (activeEquations.isEmpty()) {
+                        audioEngine.clearVoices()
+
+                        _state.value =
+                            ListenState(
+                                isPlaying = true,
+                                progress =
+                                    calculateProgress(x)
+                            )
+
+                        x +=
+                            step *
+                                    playbackSpeed
+
+                        delay(10L)
+
+                        continue
+                    }
+
                     val states =
                         mutableListOf<ListenVoiceState>()
 
-                    usable.forEachIndexed {
+                    activeEquations.forEachIndexed {
                             index,
                             equation ->
-
-                        if (
-                            !equation.audioEnabled
-                        ) {
-                            return@forEachIndexed
-                        }
 
                         val y =
                             evaluateAt(
@@ -224,7 +288,7 @@ class ListenController(
                                 active = true,
                                 volume =
                                     voiceVolume(
-                                        usable.size
+                                        activeEquations.size
                                     )
                             )
 
@@ -232,6 +296,8 @@ class ListenController(
                                 ListenVoiceState(
                                     equationId =
                                         equation.id,
+                                    expression =
+                                        equation.expression,
                                     isDefined = true,
                                     x = x,
                                     y = y,
@@ -264,10 +330,20 @@ class ListenController(
                                 ListenVoiceState(
                                     equationId =
                                         equation.id,
+                                    expression =
+                                        equation.expression,
                                     isDefined = false,
                                     x = x
                                 )
                         }
+                    }
+
+                    for (
+                    index in activeEquations.size until 16
+                    ) {
+                        audioEngine.clearVoice(
+                            index
+                        )
                     }
 
                     _state.value =
@@ -299,11 +375,12 @@ class ListenController(
         }
 
         return 1.0 /
-                kotlin.math.sqrt(
+                sqrt(
                     count.toDouble()
                 )
     }
 
+    @Synchronized
     private fun voiceIndex(
         id: Long
     ): Int {
@@ -326,7 +403,8 @@ class ListenController(
     ): Double {
 
         val range =
-            endX - startX
+            endX -
+                    startX
 
         if (
             !range.isFinite() ||
@@ -344,6 +422,7 @@ class ListenController(
             )
     }
 
+    @Synchronized
     fun setWaveform(
         value: Waveform
     ) {
@@ -447,7 +526,9 @@ class ListenController(
 
         stop()
 
-        equations.clear()
+        synchronized(this) {
+            equations.clear()
+        }
 
         _state.value =
             ListenState()

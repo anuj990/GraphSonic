@@ -2,6 +2,7 @@ package com.anuj.graphsonic.feature.audio
 
 data class ListenVoiceState(
     val equationId: Long,
+    val expression: String = "",
     val isDefined: Boolean = false,
     val x: Double = 0.0,
     val y: Double = Double.NaN,
@@ -20,13 +21,11 @@ data class ListenState(
 
     val y: Double
         get() =
-            voices.firstOrNull()?.y
-                ?: Double.NaN
+            voices.firstOrNull()?.y ?: Double.NaN
 
     val frequency: Double
         get() =
-            voices.firstOrNull()?.frequency
-                ?: 0.0
+            voices.firstOrNull()?.frequency ?: 0.0
 
     val note: MusicalNote?
         get() =

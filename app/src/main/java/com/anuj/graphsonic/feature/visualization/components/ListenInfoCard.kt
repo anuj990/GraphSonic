@@ -1,6 +1,8 @@
 package com.anuj.graphsonic.feature.visualization.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
@@ -24,37 +26,83 @@ fun ListenInfoCard(
         modifier = modifier
     ) {
         Column(
-            modifier = Modifier.padding(12.dp)
+            modifier =
+                Modifier.padding(12.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = "x = ${
-                    formatValue(
-                        listenState.x
-                    )
-                }"
-            )
 
             Text(
-                text = "y = ${
-                    formatValue(
-                        listenState.y
-                    )
-                }"
+                text =
+                    "x = ${
+                        formatValue(
+                            listenState.x
+                        )
+                    }"
             )
 
-            Text(
-                text = "Frequency = ${
-                    formatValue(
-                        listenState.frequency
-                    )
-                } Hz"
-            )
+            listenState.voices.forEach { voice ->
 
-            listenState.note?.let { note ->
-                Text(
-                    text =
-                        "Note = ${note.name}${note.octave}"
-                )
+                Column(
+                    modifier =
+                        Modifier.padding(
+                            vertical = 2.dp
+                        )
+                ) {
+
+                    Text(
+                        text =
+                            voice.expression.ifBlank {
+                                "Equation ${voice.equationId}"
+                            }
+                    )
+
+                    if (
+                        voice.isDefined
+                    ) {
+
+                        Row(
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    12.dp
+                                )
+                        ) {
+
+                            Text(
+                                text =
+                                    "y = ${
+                                        formatValue(
+                                            voice.y
+                                        )
+                                    }"
+                            )
+
+                            Text(
+                                text =
+                                    "${
+                                        formatValue(
+                                            voice.frequency
+                                        )
+                                    } Hz"
+                            )
+                        }
+
+                        voice.note?.let { note ->
+
+                            Text(
+                                text =
+                                    "Note = ${note.name}${note.octave}"
+                            )
+                        }
+
+                    } else {
+
+                        Text(
+                            text =
+                                "Undefined"
+                        )
+                    }
+                }
             }
 
             Text(
@@ -84,7 +132,10 @@ fun ListenInfoCard(
 private fun formatValue(
     value: Double
 ): String {
-    if (!value.isFinite()) {
+
+    if (
+        !value.isFinite()
+    ) {
         return "—"
     }
 

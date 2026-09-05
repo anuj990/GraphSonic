@@ -15,7 +15,6 @@ fun AppNavigation(
     navController: NavHostController,
     viewModel: VisualizationViewModel
 ) {
-
     val volume by
     viewModel.volume.collectAsState()
 
@@ -31,6 +30,12 @@ fun AppNavigation(
     val waveform by
     viewModel.waveform.collectAsState()
 
+    val uiState by
+    viewModel.uiState.collectAsState()
+
+    val cursor by
+    viewModel.cursor.collectAsState()
+
     NavHost(
         navController =
             navController,
@@ -44,23 +49,18 @@ fun AppNavigation(
         ) {
 
             EquationScreen(
-                onGraph = {
-                        equations ->
+                onGraph = { equation ->
 
                     val success =
-                        viewModel
-                            .replaceExpressions(
-                                equations
-                            )
+                        viewModel.loadExpression(
+                            equation
+                        )
 
                     if (
                         success
                     ) {
-
                         navController.navigate(
-                            AppDestination
-                                .Visualization
-                                .route
+                            AppDestination.Visualization.route
                         )
                     }
 
@@ -71,18 +71,8 @@ fun AppNavigation(
 
         composable(
             route =
-                AppDestination
-                    .Visualization
-                    .route
+                AppDestination.Visualization.route
         ) {
-
-            val uiState by
-            viewModel.uiState
-                .collectAsState()
-
-            val cursor by
-            viewModel.cursor
-                .collectAsState()
 
             VisualizationScreen(
                 graphLayers =
@@ -101,15 +91,14 @@ fun AppNavigation(
                     viewModel::startListening,
                 onStopListening =
                     viewModel::stopListening,
+                onAddExpression =
+                    viewModel::addExpression,
                 onExpressionEnabledChanged =
                     viewModel::setExpressionEnabled,
                 onExpressionAudioEnabledChanged =
                     viewModel::setExpressionAudioEnabled,
-                onExpressionRemoved =
+                onRemoveExpression =
                     viewModel::removeExpression,
-                onEditExpressions = {
-                    navController.popBackStack()
-                },
                 frequencyMode =
                     frequencyMode,
                 volume =

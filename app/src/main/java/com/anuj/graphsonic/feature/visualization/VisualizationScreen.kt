@@ -1,6 +1,5 @@
 package com.anuj.graphsonic.feature.visualization
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,7 +24,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.anuj.graphsonic.feature.audio.FrequencyMode
 import com.anuj.graphsonic.feature.audio.ListenState
@@ -38,37 +38,24 @@ fun VisualizationScreen(
     graphLayers: List<GraphLayer>,
     cursor: GraphCursorState,
     listenState: ListenState,
-    onCursorChanged:
-        (GraphCursorState) -> Unit,
-    evaluateAt:
-        (Double) -> Double,
-    onViewportChanged:
-        (GraphViewport, Float) -> Unit,
-    onStartListening:
-        () -> Unit,
-    onStopListening:
-        () -> Unit,
-    onExpressionEnabledChanged:
-        (Long, Boolean) -> Unit,
-    onExpressionAudioEnabledChanged:
-        (Long, Boolean) -> Unit,
-    onExpressionRemoved:
-        (Long) -> Unit,
-    onEditExpressions:
-        () -> Unit,
+    onCursorChanged: (GraphCursorState) -> Unit,
+    evaluateAt: (Double) -> Double,
+    onViewportChanged: (GraphViewport, Float) -> Unit,
+    onStartListening: () -> Unit,
+    onStopListening: () -> Unit,
+    onAddExpression: (String) -> Boolean,
+    onExpressionEnabledChanged: (Long, Boolean) -> Unit,
+    onExpressionAudioEnabledChanged: (Long, Boolean) -> Unit,
+    onRemoveExpression: (Long) -> Unit,
     modifier: Modifier = Modifier,
     frequencyMode: FrequencyMode,
     volume: Double,
-    onVolumeChanged:
-        (Double) -> Unit,
+    onVolumeChanged: (Double) -> Unit,
     playbackSpeed: Double,
-    onFrequencyModeChanged:
-        (FrequencyMode) -> Unit,
+    onFrequencyModeChanged: (FrequencyMode) -> Unit,
     waveform: Waveform,
-    onWaveformChanged:
-        (Waveform) -> Unit,
-    onPlaybackSpeedChanged:
-        (Double) -> Unit
+    onWaveformChanged: (Waveform) -> Unit,
+    onPlaybackSpeedChanged: (Double) -> Unit
 ) {
 
     var controlsExpanded by
@@ -76,9 +63,19 @@ fun VisualizationScreen(
         mutableStateOf(false)
     }
 
-    var layersExpanded by
+    var addDialogVisible by
     rememberSaveable {
-        mutableStateOf(true)
+        mutableStateOf(false)
+    }
+
+    var newExpression by
+    rememberSaveable {
+        mutableStateOf("")
+    }
+
+    var addError by
+    rememberSaveable {
+        mutableStateOf<String?>(null)
     }
 
     Box(
@@ -104,8 +101,166 @@ fun VisualizationScreen(
         )
 
         CursorInfoCard(
-            cursor = cursor
+            cursor =
+                cursor
         )
+
+        Column(
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.TopCenter
+                    )
+                    .fillMaxWidth()
+                    .padding(12.dp)
+        ) {
+
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text =
+                        "Equations"
+                )
+
+                Button(
+                    onClick = {
+                        if (
+                            graphLayers.size < 8
+                        ) {
+                            newExpression =
+                                ""
+                            addError =
+                                null
+                            addDialogVisible =
+                                true
+                        }
+                    },
+                    enabled =
+                        graphLayers.size < 8
+                ) {
+                    Text(
+                        text =
+                            "Add equation"
+                    )
+                }
+            }
+
+            if (
+                graphLayers.isNotEmpty()
+            ) {
+
+                LazyColumn(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                top = 8.dp
+                            )
+                ) {
+
+                    items(
+                        items =
+                            graphLayers,
+                        key =
+                            {
+                                it.id
+                            }
+                    ) { layer ->
+
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        vertical = 4.dp
+                                    )
+                        ) {
+
+                            Row(
+                                modifier =
+                                    Modifier.fillMaxWidth(),
+                                verticalAlignment =
+                                    Alignment.CenterVertically
+                            ) {
+
+                                Column(
+                                    modifier =
+                                        Modifier.weight(1f)
+                                ) {
+
+                                    Text(
+                                        text =
+                                            layer.expression
+                                    )
+
+                                    Row(
+                                        verticalAlignment =
+                                            Alignment.CenterVertically
+                                    ) {
+
+                                        Text(
+                                            text =
+                                                "Graph"
+                                        )
+
+                                        Switch(
+                                            checked =
+                                                layer.enabled,
+                                            onCheckedChange =
+                                                {
+                                                    onExpressionEnabledChanged(
+                                                        layer.id,
+                                                        it
+                                                    )
+                                                }
+                                        )
+
+                                        Text(
+                                            text =
+                                                "Audio"
+                                        )
+
+                                        Switch(
+                                            checked =
+                                                layer.audioEnabled,
+                                            onCheckedChange =
+                                                {
+                                                    onExpressionAudioEnabledChanged(
+                                                        layer.id,
+                                                        it
+                                                    )
+                                                }
+                                        )
+                                    }
+                                }
+
+                                TextButton(
+                                    onClick = {
+                                        onRemoveExpression(
+                                            layer.id
+                                        )
+                                    }
+                                ) {
+                                    Text(
+                                        text =
+                                            "Remove"
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
+        }
 
         Column(
             modifier =
@@ -128,24 +283,6 @@ fun VisualizationScreen(
                     )
             )
 
-            if (
-                layersExpanded
-            ) {
-
-                LayerPanel(
-                    graphLayers =
-                        graphLayers,
-                    onExpressionEnabledChanged =
-                        onExpressionEnabledChanged,
-                    onExpressionAudioEnabledChanged =
-                        onExpressionAudioEnabledChanged,
-                    onExpressionRemoved =
-                        onExpressionRemoved,
-                    onEditExpressions =
-                        onEditExpressions
-                )
-            }
-
             ListenPanel(
                 isPlaying =
                     listenState.isPlaying,
@@ -159,10 +296,11 @@ fun VisualizationScreen(
                     waveform,
                 expanded =
                     controlsExpanded,
-                onExpandedChanged = {
-                    controlsExpanded =
-                        it
-                },
+                onExpandedChanged =
+                    {
+                        controlsExpanded =
+                            it
+                    },
                 onStart =
                     onStartListening,
                 onStop =
@@ -176,262 +314,120 @@ fun VisualizationScreen(
                 onWaveformChanged =
                     onWaveformChanged
             )
-
-            TextButton(
-                onClick = {
-                    layersExpanded =
-                        !layersExpanded
-                }
-            ) {
-                Text(
-                    if (
-                        layersExpanded
-                    ) {
-                        "Hide functions"
-                    } else {
-                        "Show functions"
-                    }
-                )
-            }
         }
     }
-}
 
-@Composable
-private fun LayerPanel(
-    graphLayers: List<GraphLayer>,
-    onExpressionEnabledChanged:
-        (Long, Boolean) -> Unit,
-    onExpressionAudioEnabledChanged:
-        (Long, Boolean) -> Unit,
-    onExpressionRemoved:
-        (Long) -> Unit,
-    onEditExpressions:
-        () -> Unit
-) {
-
-    Card(
-        modifier =
-            Modifier.fillMaxWidth()
+    if (
+        addDialogVisible
     ) {
 
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-        ) {
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                Text(
-                    text = "Functions",
-                    modifier =
-                        Modifier.weight(1f),
-                    style =
-                        MaterialTheme
-                            .typography
-                            .titleMedium
-                )
-
-                TextButton(
-                    onClick =
-                        onEditExpressions
-                ) {
-                    Text("Edit")
-                }
-            }
-
-            if (
-                graphLayers.isEmpty()
-            ) {
-
+        AlertDialog(
+            onDismissRequest = {
+                addDialogVisible =
+                    false
+            },
+            title = {
                 Text(
                     text =
-                        "No functions",
-                    modifier =
-                        Modifier.padding(
-                            vertical = 8.dp
-                        )
+                        "Add equation"
                 )
+            },
+            text = {
 
-            } else {
+                Column {
 
-                LazyColumn(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                top = 4.dp
-                            ),
-                    verticalArrangement =
-                        Arrangement.spacedBy(
-                            4.dp
-                        )
-                ) {
+                    OutlinedTextField(
+                        value =
+                            newExpression,
+                        onValueChange = {
+                            newExpression =
+                                it
+                            addError =
+                                null
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        singleLine =
+                            true,
+                        placeholder = {
+                            Text(
+                                text =
+                                    "Enter equation"
+                            )
+                        },
+                        isError =
+                            addError != null
+                    )
 
-                    items(
-                        items =
-                            graphLayers,
-                        key = {
-                            it.id
-                        }
-                    ) { layer ->
+                    if (
+                        addError != null
+                    ) {
 
-                        LayerRow(
-                            layer =
-                                layer,
-                            onVisibilityChanged =
-                                {
-                                        enabled ->
-                                    onExpressionEnabledChanged(
-                                        layer.id,
-                                        enabled
-                                    )
-                                },
-                            onAudioChanged =
-                                {
-                                        enabled ->
-                                    onExpressionAudioEnabledChanged(
-                                        layer.id,
-                                        enabled
-                                    )
-                                },
-                            onRemove = {
-                                onExpressionRemoved(
-                                    layer.id
+                        Text(
+                            text =
+                                addError!!,
+                            modifier =
+                                Modifier.padding(
+                                    top = 8.dp
                                 )
-                            }
                         )
                     }
                 }
+            },
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        val expression =
+                            newExpression.trim()
+
+                        if (
+                            expression.isEmpty()
+                        ) {
+                            addError =
+                                "Enter an equation"
+                            return@Button
+                        }
+
+                        val success =
+                            onAddExpression(
+                                expression
+                            )
+
+                        if (
+                            success
+                        ) {
+                            addDialogVisible =
+                                false
+                            newExpression =
+                                ""
+                        } else {
+                            addError =
+                                "Equation is invalid"
+                        }
+                    }
+                ) {
+                    Text(
+                        text =
+                            "Add"
+                    )
+                }
+            },
+            dismissButton = {
+
+                OutlinedButton(
+                    onClick = {
+                        addDialogVisible =
+                            false
+                    }
+                ) {
+                    Text(
+                        text =
+                            "Cancel"
+                    )
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun LayerRow(
-    layer: GraphLayer,
-    onVisibilityChanged:
-        (Boolean) -> Unit,
-    onAudioChanged:
-        (Boolean) -> Unit,
-    onRemove:
-        () -> Unit
-) {
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(
-                    MaterialTheme
-                        .colorScheme
-                        .surfaceVariant
-                )
-                .padding(
-                    horizontal = 8.dp,
-                    vertical = 4.dp
-                ),
-        verticalAlignment =
-            Alignment.CenterVertically
-    ) {
-
-        Box(
-            modifier =
-                Modifier
-                    .padding(
-                        end = 8.dp
-                    )
-                    .background(
-                        layerColor(
-                            layer.colorIndex
-                        )
-                    )
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .padding(
-                            horizontal = 3.dp,
-                            vertical = 8.dp
-                        )
-            )
-        }
-
-        Text(
-            text =
-                layer.expression,
-            modifier =
-                Modifier.weight(1f),
-            maxLines = 1
         )
-
-        IconButton(
-            onClick = {
-                onVisibilityChanged(
-                    !layer.enabled
-                )
-            }
-        ) {
-            Text(
-                if (
-                    layer.enabled
-                ) {
-                    "◉"
-                } else {
-                    "○"
-                }
-            )
-        }
-
-        IconButton(
-            onClick = {
-                onAudioChanged(
-                    !layer.audioEnabled
-                )
-            }
-        ) {
-            Text(
-                if (
-                    layer.audioEnabled
-                ) {
-                    "♪"
-                } else {
-                    "×"
-                }
-            )
-        }
-
-        IconButton(
-            onClick =
-                onRemove
-        ) {
-            Text("×")
-        }
-    }
-}
-
-private fun layerColor(
-    index: Int
-): Color {
-
-    return when (
-        index % 8
-    ) {
-        0 -> Color(0xFF1565C0)
-        1 -> Color(0xFFD32F2F)
-        2 -> Color(0xFF2E7D32)
-        3 -> Color(0xFF7B1FA2)
-        4 -> Color(0xFFEF6C00)
-        5 -> Color(0xFF00838F)
-        6 -> Color(0xFF6D4C41)
-        else -> Color(0xFFC2185B)
     }
 }
