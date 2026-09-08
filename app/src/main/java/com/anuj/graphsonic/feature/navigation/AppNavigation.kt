@@ -99,6 +99,12 @@ fun AppNavigation(
                     viewModel::setExpressionAudioEnabled,
                 onRemoveExpression =
                     viewModel::removeExpression,
+                onEditExpression = { id, expression ->
+                    viewModel.editExpression(
+                        id,
+                        expression
+                    )
+                },
                 frequencyMode =
                     frequencyMode,
                 volume =

@@ -490,6 +490,131 @@ class VisualizationViewModel : ViewModel() {
             )
         }
     }
+    fun editExpression(
+        id: Long,
+        expression: String
+    ): Boolean {
+
+        val cleaned =
+            expression.trim()
+
+        if (cleaned.isEmpty()) {
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Enter an equation"
+                )
+            }
+
+            return false
+        }
+
+        val oldHandle =
+            expressionHandles[id]
+                ?: return false
+
+        val layer =
+            _uiState.value.graphLayers
+                .firstOrNull {
+                    it.id == id
+                }
+                ?: return false
+
+        return try {
+
+            val newHandle =
+                nativeBridge.createExpression(
+                    cleaned
+                )
+
+            if (newHandle == 0L) {
+                throw IllegalArgumentException()
+            }
+
+            val graph =
+                graphEngine.generateGraph(
+                    expressionHandle =
+                        newHandle,
+                    xMin = -10.0,
+                    xMax = 10.0,
+                    sampleCount =
+                        INITIAL_SAMPLE_COUNT
+                )
+
+            expressionHandles[id] =
+                newHandle
+
+            nativeBridge.destroyExpression(
+                oldHandle
+            )
+
+            listenController.setGraphData(
+                id = id,
+                graphData = graph
+            )
+
+            listenController.setExpression(
+                id = id,
+                expression = cleaned
+            )
+
+            val updatedLayers =
+                _uiState.value.graphLayers.map {
+                        currentLayer ->
+
+                    if (
+                        currentLayer.id == id
+                    ) {
+                        currentLayer.copy(
+                            expression =
+                                cleaned,
+                            graphData =
+                                graph
+                        )
+                    } else {
+                        currentLayer
+                    }
+                }
+
+            val firstLayerId =
+                updatedLayers
+                    .firstOrNull()
+                    ?.id
+
+            _uiState.update {
+                it.copy(
+                    graphLayers =
+                        updatedLayers,
+                    graphData =
+                        updatedLayers
+                            .firstOrNull {
+                                it.id ==
+                                        firstLayerId
+                            }
+                            ?.graphData
+                            ?: GraphData(
+                                emptyList()
+                            ),
+                    errorMessage = null
+                )
+            }
+
+            true
+
+        } catch (
+            exception: Exception
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Equation is invalid"
+                )
+            }
+
+            false
+        }
+    }
 
     fun setExpressionEnabled(
         id: Long,
