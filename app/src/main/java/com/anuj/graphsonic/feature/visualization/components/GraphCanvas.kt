@@ -24,6 +24,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.anuj.graphsonic.feature.audio.ListenState
 import com.anuj.graphsonic.feature.visualization.GraphCursorState
+import com.anuj.graphsonic.feature.visualization.GraphCursorValue
 import com.anuj.graphsonic.feature.visualization.GraphLayer
 import com.anuj.graphsonic.feature.visualization.GraphViewport
 import com.anuj.graphsonic.feature.visualization.utils.graphToScreen
@@ -40,7 +41,7 @@ fun GraphCanvas(
     cursor: GraphCursorState,
     listenState: ListenState,
     onCursorChanged: (GraphCursorState) -> Unit,
-    evaluateAt: (Double) -> Double,
+    evaluateAt: (Long, Double) -> Double,
     onViewportChanged: (GraphViewport, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -158,7 +159,9 @@ fun GraphCanvas(
                             position = position,
                             viewport = viewport,
                             evaluateAt = evaluateAt,
-                            screenWidth = size.width.toFloat()
+                            screenWidth =
+                                size.width.toFloat(),
+                            graphLayers = graphLayers
                         ) {
                                 newCursor ->
                             onCursorChanged(newCursor)
@@ -166,10 +169,13 @@ fun GraphCanvas(
                     },
                     onDrag = { change, _ ->
                         updateCursor(
-                            position = change.position,
+                            position =
+                                change.position,
                             viewport = viewport,
                             evaluateAt = evaluateAt,
-                            screenWidth = size.width.toFloat()
+                            screenWidth =
+                                size.width.toFloat(),
+                            graphLayers = graphLayers
                         ) {
                                 newCursor ->
                             onCursorChanged(newCursor)
@@ -330,7 +336,7 @@ private fun DrawScope.drawListenCursors(
     }
 }
 
-private fun pointerColor(
+fun pointerColor(
     index: Int
 ): Color {
     return when (index % 6) {
@@ -346,8 +352,9 @@ private fun pointerColor(
 private fun updateCursor(
     position: Offset,
     viewport: GraphViewport,
-    evaluateAt: (Double) -> Double,
+    evaluateAt: (Long, Double) -> Double,
     screenWidth: Float,
+    graphLayers: List<GraphLayer>,
     onCursorChanged: (GraphCursorState) -> Unit
 ) {
     val x =
@@ -357,10 +364,37 @@ private fun updateCursor(
             viewport = viewport
         )
 
-    val y =
-        evaluateAt(x)
+    val values =
+        graphLayers
+            .filter {
+                it.enabled
+            }
+            .mapNotNull { layer ->
 
-    if (!y.isFinite()) {
+                val y =
+                    evaluateAt(
+                        layer.id,
+                        x
+                    )
+
+                if (
+                    y.isFinite()
+                ) {
+                    GraphCursorValue(
+                        equationId =
+                            layer.id,
+                        expression =
+                            layer.expression,
+                        y = y
+                    )
+                } else {
+                    null
+                }
+            }
+
+    if (
+        values.isEmpty()
+    ) {
         onCursorChanged(
             GraphCursorState(
                 visible = false
@@ -374,7 +408,8 @@ private fun updateCursor(
         GraphCursorState(
             visible = true,
             x = x,
-            y = y
+            y = values.first().y,
+            values = values
         )
     )
 }

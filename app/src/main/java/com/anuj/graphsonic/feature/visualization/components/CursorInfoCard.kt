@@ -33,12 +33,16 @@ fun CursorInfoCard(
             )
     ) {
         Text(
-            text = "x = ${formatValue(cursor.x)}"
+            text =
+                "x = ${formatValue(cursor.x)}"
         )
 
-        Text(
-            text = "y = ${formatValue(cursor.y)}"
-        )
+        cursor.values.forEach { value ->
+            Text(
+                text =
+                    "${value.expression} = ${formatValue(value.y)}"
+            )
+        }
     }
 }
 

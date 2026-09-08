@@ -12,47 +12,51 @@ fun DrawScope.drawGraphCursor(
     cursor: GraphCursorState,
     viewport: GraphViewport
 ) {
-    if (!cursor.visible) {
+
+    if (
+        !cursor.visible ||
+        !cursor.x.isFinite()
+    ) {
         return
     }
 
-    val position = graphToScreen(
-        x = cursor.x,
-        y = cursor.y,
-        screenWidth = size.width,
-        screenHeight = size.height,
-        viewport = viewport
-    )
+    cursor.values.forEachIndexed { index, value ->
 
-    drawLine(
-        color = Color.DarkGray,
-        start = Offset(
-            position.x,
-            0f
-        ),
-        end = Offset(
-            position.x,
-            size.height
-        ),
-        strokeWidth = 1.5f
-    )
+        if (
+            !value.y.isFinite()
+        ) {
+            return@forEachIndexed
+        }
 
-    drawLine(
-        color = Color.DarkGray,
-        start = Offset(
-            0f,
-            position.y
-        ),
-        end = Offset(
-            size.width,
-            position.y
-        ),
-        strokeWidth = 1.5f
-    )
+        val position =
+            graphToScreen(
+                x = cursor.x,
+                y = value.y,
+                screenWidth = size.width,
+                screenHeight = size.height,
+                viewport = viewport
+            )
 
-    drawCircle(
-        color = Color.Black,
-        radius = 8f,
-        center = position
-    )
+        if (
+            position.x < 0f ||
+            position.x > size.width ||
+            position.y < 0f ||
+            position.y > size.height
+        ) {
+            return@forEachIndexed
+        }
+
+        drawCircle(
+            color =
+                pointerColor(index),
+            radius = 8f,
+            center = position
+        )
+
+        drawCircle(
+            color = Color.White,
+            radius = 4f,
+            center = position
+        )
+    }
 }

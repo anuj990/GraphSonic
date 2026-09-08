@@ -83,8 +83,12 @@ fun AppNavigation(
                     listenState,
                 onCursorChanged =
                     viewModel::updateCursor,
-                evaluateAt =
-                    viewModel::evaluateAt,
+                evaluateAt = { id, x ->
+                    viewModel.evaluateAt(
+                        id,
+                        x
+                    )
+                },
                 onViewportChanged =
                     viewModel::onViewportChanged,
                 onStartListening =
