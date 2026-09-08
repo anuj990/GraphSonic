@@ -44,6 +44,7 @@ fun VisualizationScreen(
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
     onAddExpression: (String) -> Boolean,
+    history: List<String>,
     onExpressionEnabledChanged: (Long, Boolean) -> Unit,
     onExpressionAudioEnabledChanged: (Long, Boolean) -> Unit,
     onRemoveExpression: (Long) -> Unit,
@@ -64,6 +65,13 @@ fun VisualizationScreen(
     }
 
     var addDialogVisible by rememberSaveable {
+        mutableStateOf(false)
+    }
+    var addMethodDialogVisible by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    var historyDialogVisible by rememberSaveable {
         mutableStateOf(false)
     }
 
@@ -131,11 +139,10 @@ fun VisualizationScreen(
                 Button(
                     onClick = {
                         if (graphLayers.size < 8) {
-                            newExpression = ""
-                            addError = null
-                            addDialogVisible = true
+                            addMethodDialogVisible = true
                         }
-                    }, enabled = graphLayers.size < 8
+                    },
+                    enabled = graphLayers.size < 8
                 ) {
                     Text(
                         text = "Add equation"
@@ -276,7 +283,137 @@ fun VisualizationScreen(
             )
         }
     }
+    if (addMethodDialogVisible) {
 
+        AlertDialog(
+            onDismissRequest = {
+                addMethodDialogVisible = false
+            },
+            title = {
+                Text(
+                    text = "Add equation"
+                )
+            },
+            text = {
+                Column {
+
+                    Button(
+                        onClick = {
+                            addMethodDialogVisible = false
+                            newExpression = ""
+                            addError = null
+                            addDialogVisible = true
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Manually"
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            addMethodDialogVisible = false
+                            historyDialogVisible = true
+                        },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    top = 8.dp
+                                )
+                    ) {
+                        Text(
+                            text = "From history"
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        addMethodDialogVisible = false
+                    }
+                ) {
+                    Text(
+                        text = "Cancel"
+                    )
+                }
+            }
+        )
+    }
+    if (historyDialogVisible) {
+
+        AlertDialog(
+            onDismissRequest = {
+                historyDialogVisible = false
+            },
+            title = {
+                Text(
+                    text = "Choose from history"
+                )
+            },
+            text = {
+
+                if (history.isEmpty()) {
+
+                    Text(
+                        text =
+                            "No equation history yet"
+                    )
+
+                } else {
+
+                    LazyColumn {
+
+                        items(
+                            items = history,
+                            key = { it }
+                        ) { expression ->
+
+                            TextButton(
+                                onClick = {
+
+                                    val success =
+                                        onAddExpression(
+                                            expression
+                                        )
+
+                                    if (success) {
+                                        historyDialogVisible = false
+                                    }
+                                },
+                                modifier =
+                                    Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = expression,
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        historyDialogVisible = false
+                    }
+                ) {
+                    Text(
+                        text = "Cancel"
+                    )
+                }
+            }
+        )
+    }
     if (addDialogVisible) {
 
         AlertDialog(onDismissRequest = {

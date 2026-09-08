@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.anuj.graphsonic.feature.equation.EquationScreen
+import com.anuj.graphsonic.feature.history.HistoryScreen
 import com.anuj.graphsonic.feature.visualization.VisualizationScreen
 import com.anuj.graphsonic.feature.visualization.VisualizationViewModel
 
@@ -32,6 +33,8 @@ fun AppNavigation(
 
     val uiState by
     viewModel.uiState.collectAsState()
+    val history by
+    viewModel.history.collectAsState()
 
     val cursor by
     viewModel.cursor.collectAsState()
@@ -65,10 +68,40 @@ fun AppNavigation(
                     }
 
                     success
+                } ,
+                onHistory = {
+                    navController.navigate(
+                        AppDestination.History.route
+                    )
+                },
+            )
+        }
+        composable(
+            route =
+                AppDestination.History.route
+        ) {
+
+            val history by
+            viewModel.history.collectAsState()
+
+            HistoryScreen(
+                history =
+                    history,
+                onEquationSelected = { expression ->
+
+                    val success =
+                        viewModel.loadExpression(
+                            expression
+                        )
+
+                    if (success) {
+                        navController.navigate(
+                            AppDestination.Visualization.route
+                        )
+                    }
                 }
             )
         }
-
         composable(
             route =
                 AppDestination.Visualization.route
@@ -97,6 +130,7 @@ fun AppNavigation(
                     viewModel::stopListening,
                 onAddExpression =
                     viewModel::addExpression,
+                history = history,
                 onExpressionEnabledChanged =
                     viewModel::setExpressionEnabled,
                 onExpressionAudioEnabledChanged =

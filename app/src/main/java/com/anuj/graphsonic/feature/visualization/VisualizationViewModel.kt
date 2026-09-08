@@ -1,7 +1,8 @@
 package com.anuj.graphsonic.feature.visualization
 
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.anuj.graphsonic.data.history.EquationHistoryRepository
 import com.anuj.graphsonic.domain.model.GraphData
 import com.anuj.graphsonic.engine.GraphEngine
 import com.anuj.graphsonic.engine.NativeBridge
@@ -23,7 +24,9 @@ data class VisualizationUiState(
     val isListening: Boolean = false
 )
 
-class VisualizationViewModel : ViewModel() {
+class VisualizationViewModel(
+    application: android.app.Application
+) : AndroidViewModel(application) {
 
     companion object {
         private const val MAX_EQUATIONS = 8
@@ -39,7 +42,18 @@ class VisualizationViewModel : ViewModel() {
 
     private val nativeBridge =
         NativeBridge()
+    private val historyRepository =
+        EquationHistoryRepository(
+            application
+        )
+    private val _history =
+        MutableStateFlow(
+            historyRepository.getHistory()
+        )
 
+    val history:
+            StateFlow<List<String>> =
+        _history.asStateFlow()
     private val graphEngine =
         GraphEngine(
             nativeBridge
@@ -127,9 +141,21 @@ class VisualizationViewModel : ViewModel() {
     fun loadExpression(
         expression: String
     ): Boolean {
-        return replaceExpressions(
-            listOf(expression)
-        )
+        val success =
+            replaceExpressions(
+                listOf(expression)
+            )
+
+        if (success) {
+            historyRepository.addEquation(
+                expression
+            )
+
+            _history.value =
+                historyRepository.getHistory()
+        }
+
+        return success
     }
 
     fun addExpression(
@@ -138,6 +164,20 @@ class VisualizationViewModel : ViewModel() {
 
         val cleaned =
             expression.trim()
+        if (
+            _uiState.value.graphLayers.any {
+                it.expression == cleaned
+            }
+        ) {
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Equation already added"
+                )
+            }
+
+            return false
+        }
 
         if (cleaned.isEmpty()) {
             _uiState.update {
@@ -233,6 +273,12 @@ class VisualizationViewModel : ViewModel() {
                     errorMessage = null
                 )
             }
+            historyRepository.addEquation(
+                cleaned
+            )
+
+            _history.value =
+                historyRepository.getHistory()
 
             true
 

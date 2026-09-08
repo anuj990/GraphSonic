@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,8 +20,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun EquationScreen(
     onGraph: (String) -> Boolean,
+    onHistory: () -> Unit,
     modifier: Modifier = Modifier
-) {
+){
     var equation by
     remember {
         mutableStateOf("")
@@ -98,6 +100,7 @@ fun EquationScreen(
                         "Equation is invalid"
                 }
             },
+            
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -107,6 +110,19 @@ fun EquationScreen(
         ) {
             Text(
                 text = "Graph"
+            )
+        }
+        OutlinedButton(
+            onClick = onHistory,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = 8.dp
+                    )
+        ) {
+            Text(
+                text = "History"
             )
         }
     }
