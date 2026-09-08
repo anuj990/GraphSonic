@@ -5,6 +5,7 @@ import com.anuj.graphsonic.domain.model.GraphData
 data class GraphLayer(
     val id: Long,
     val expression: String,
+    val canonicalExpression: String,
     val graphData: GraphData,
     val enabled: Boolean = true,
     val audioEnabled: Boolean = true,

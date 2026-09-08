@@ -24,6 +24,7 @@ public:
     bool isDefined(
             double x
     ) const;
+    std::string canonical() const;
 
 private:
 

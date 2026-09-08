@@ -164,20 +164,6 @@ class VisualizationViewModel(
 
         val cleaned =
             expression.trim()
-        if (
-            _uiState.value.graphLayers.any {
-                it.expression == cleaned
-            }
-        ) {
-            _uiState.update {
-                it.copy(
-                    errorMessage =
-                        "Equation already added"
-                )
-            }
-
-            return false
-        }
 
         if (cleaned.isEmpty()) {
             _uiState.update {
@@ -217,6 +203,32 @@ class VisualizationViewModel(
                 throw IllegalArgumentException()
             }
 
+            val canonicalExpression =
+                nativeBridge.getCanonicalExpression(
+                    handle
+                )
+
+            if (
+                _uiState.value.graphLayers.any {
+                    it.canonicalExpression ==
+                            canonicalExpression
+                }
+            ) {
+
+                nativeBridge.destroyExpression(
+                    handle
+                )
+
+                _uiState.update {
+                    it.copy(
+                        errorMessage =
+                            "Equation already added"
+                    )
+                }
+
+                return false
+            }
+
             val id =
                 nextLayerId++
 
@@ -237,6 +249,8 @@ class VisualizationViewModel(
                 GraphLayer(
                     id = id,
                     expression = cleaned,
+                    canonicalExpression =
+                        canonicalExpression,
                     graphData = graph,
                     enabled = true,
                     audioEnabled = true,
@@ -273,6 +287,7 @@ class VisualizationViewModel(
                     errorMessage = null
                 )
             }
+
             historyRepository.addEquation(
                 cleaned
             )
@@ -358,6 +373,7 @@ class VisualizationViewModel(
                 ) {
                     throw IllegalArgumentException()
                 }
+                
 
                 val id =
                     nextLayerId++
@@ -375,11 +391,18 @@ class VisualizationViewModel(
                 newHandles[id] =
                     handle
 
+                val canonicalExpression =
+                    nativeBridge.getCanonicalExpression(
+                        handle
+                    )
+
                 newLayers +=
                     GraphLayer(
                         id = id,
                         expression =
                             expression,
+                        canonicalExpression =
+                            canonicalExpression,
                         graphData =
                             graph,
                         enabled = true,
@@ -576,7 +599,10 @@ class VisualizationViewModel(
             if (newHandle == 0L) {
                 throw IllegalArgumentException()
             }
-
+            val canonicalExpression =
+                nativeBridge.getCanonicalExpression(
+                    newHandle
+                )
             val graph =
                 graphEngine.generateGraph(
                     expressionHandle =
@@ -614,6 +640,8 @@ class VisualizationViewModel(
                         currentLayer.copy(
                             expression =
                                 cleaned,
+                            canonicalExpression =
+                                canonicalExpression,
                             graphData =
                                 graph
                         )

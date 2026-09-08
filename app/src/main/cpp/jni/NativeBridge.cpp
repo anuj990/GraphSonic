@@ -71,6 +71,26 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
         return 0;
     }
 }
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_anuj_graphsonic_engine_NativeBridge_getCanonicalExpression(
+        JNIEnv* env,
+        jobject,
+        jlong handle
+) {
+
+    auto* expression =
+            reinterpret_cast<Expression*>(
+                    handle
+            );
+
+    const std::string canonical =
+            expression->canonical();
+
+    return env->NewStringUTF(
+            canonical.c_str()
+    );
+}
 
 extern "C"
 JNIEXPORT jdouble JNICALL

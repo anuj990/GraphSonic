@@ -32,4 +32,5 @@ class NativeBridge {
     external fun destroyExpression(
         handle: Long
     )
+    external fun getCanonicalExpression(handle: Long): String
 }
