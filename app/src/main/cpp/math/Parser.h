@@ -49,7 +49,8 @@ private:
 
     std::unique_ptr<ASTNode>
     parsePrimary();
-
+    std::unique_ptr<ASTNode>
+    parseFunction();
     std::unique_ptr<ASTNode>
     createPowerNode(
             std::unique_ptr<ASTNode> base,

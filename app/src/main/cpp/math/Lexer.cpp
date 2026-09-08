@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 
 Lexer::Lexer(const std::string& expression)
         : expression(expression) {}
@@ -404,6 +405,9 @@ Token Lexer::readIdentifier() {
                     identifier == "acos" ||
                     identifier == "atan" ||
                     identifier == "sinh" ||
+                    identifier == "arcsin" ||
+                    identifier == "arccos" ||
+                    identifier == "arctan" ||
                     identifier == "cosh" ||
                     identifier == "tanh" ||
                     identifier == "sqrt" ||
@@ -413,6 +417,25 @@ Token Lexer::readIdentifier() {
                     identifier == "abs" ||
                     identifier == "exp"
             ) {
+        std::string functionName =
+                identifier;
+
+        if (functionName == "arcsin") {
+            functionName = "asin";
+        }
+
+        if (functionName == "arccos") {
+            functionName = "acos";
+        }
+
+        if (functionName == "arctan") {
+            functionName = "atan";
+        }
+
+        return Token(
+                TokenType::Function,
+                functionName
+        );
 
         return Token(
                 TokenType::Function,

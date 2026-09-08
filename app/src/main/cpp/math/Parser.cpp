@@ -232,7 +232,72 @@ std::unique_ptr<ASTNode>
 Parser::parsePower() {
 
     auto node =
-            parseSuperscript();
+            parseFunction();
+
+    while (
+            check(TokenType::SuperscriptNumber) ||
+                    check(TokenType::SuperscriptPlus) ||
+                    check(TokenType::SuperscriptMinus)
+            ) {
+
+        double exponent = 0.0;
+
+        if (
+                check(TokenType::SuperscriptNumber)
+                ) {
+
+            exponent =
+                    current().value;
+
+            position++;
+
+        } else {
+
+            const TokenType sign =
+                    current().type;
+
+            position++;
+
+            if (
+                    !check(
+                            TokenType::SuperscriptNumber
+                    )
+                    ) {
+
+                throw std::runtime_error(
+                        "Expected superscript number"
+                );
+            }
+
+            exponent =
+                    current().value;
+
+            position++;
+
+            if (
+                    sign ==
+                            TokenType::SuperscriptMinus
+                    ) {
+
+                exponent =
+                        -exponent;
+            }
+        }
+
+        auto exponentNode =
+                std::make_unique<ASTNode>(
+                        NodeType::Number
+                );
+
+        exponentNode->value =
+                exponent;
+
+        node =
+                createPowerNode(
+                        std::move(node),
+                        std::move(exponentNode)
+                );
+    }
 
     if (match(TokenType::Power)) {
 
@@ -341,7 +406,134 @@ Parser::createPowerNode(
 
     return parent;
 }
+std::unique_ptr<ASTNode>
+Parser::parseFunction() {
 
+    if (
+            !check(TokenType::Function)
+            ) {
+
+        return parsePrimary();
+    }
+
+    const std::string functionName =
+            current().text;
+
+    position++;
+
+    std::vector<double> superscriptExponents;
+
+    while (
+            check(TokenType::SuperscriptNumber) ||
+                    check(TokenType::SuperscriptPlus) ||
+                    check(TokenType::SuperscriptMinus)
+            ) {
+
+        double exponent = 0.0;
+
+        if (
+                check(TokenType::SuperscriptNumber)
+                ) {
+
+            exponent =
+                    current().value;
+
+            position++;
+
+        } else {
+
+            const TokenType sign =
+                    current().type;
+
+            position++;
+
+            if (
+                    !check(
+                            TokenType::SuperscriptNumber
+                    )
+                    ) {
+
+                throw std::runtime_error(
+                        "Expected superscript number"
+                );
+            }
+
+            exponent =
+                    current().value;
+
+            position++;
+
+            if (
+                    sign ==
+                            TokenType::SuperscriptMinus
+                    ) {
+
+                exponent =
+                        -exponent;
+            }
+        }
+
+        superscriptExponents.push_back(
+                exponent
+        );
+    }
+
+    std::unique_ptr<ASTNode> argument;
+
+    if (
+            match(TokenType::LeftParen)
+            ) {
+
+        argument =
+                parseExpression();
+
+        consume(
+                TokenType::RightParen,
+                "Expected ')'"
+        );
+
+    } else {
+
+        argument =
+                parsePower();
+    }
+
+    auto functionNode =
+            std::make_unique<ASTNode>(
+                    NodeType::Function
+            );
+
+    functionNode->functionName =
+            functionName;
+
+    functionNode->left =
+            std::move(argument);
+
+    std::unique_ptr<ASTNode> result =
+            std::move(functionNode);
+
+    for (
+        double exponent :
+            superscriptExponents
+            ) {
+
+        auto exponentNode =
+                std::make_unique<ASTNode>(
+                        NodeType::Number
+                );
+
+        exponentNode->value =
+                exponent;
+
+        result =
+                createPowerNode(
+                        std::move(result),
+                        std::move(exponentNode)
+                );
+    }
+
+    return result;
+}
 std::unique_ptr<ASTNode>
 Parser::parsePrimary() {
 
@@ -372,40 +564,6 @@ Parser::parsePrimary() {
         );
     }
 
-    if (check(TokenType::Function)) {
-
-        const std::string functionName =
-                current().text;
-
-        position++;
-
-        consume(
-                TokenType::LeftParen,
-                "Expected '(' after function"
-        );
-
-        auto argument =
-                parseExpression();
-
-        consume(
-                TokenType::RightParen,
-                "Expected ')' after function argument"
-        );
-
-        auto node =
-                std::make_unique<ASTNode>(
-                        NodeType::Function
-                );
-
-        node->functionName =
-                functionName;
-
-        node->left =
-                std::move(argument);
-
-        return node;
-    }
-
     if (
             match(TokenType::LeftParen)
             ) {
@@ -422,6 +580,6 @@ Parser::parsePrimary() {
     }
 
     throw std::runtime_error(
-            "Expected number, variable, function, or '('"
+            "Expected number, variable, or '('"
     );
 }
