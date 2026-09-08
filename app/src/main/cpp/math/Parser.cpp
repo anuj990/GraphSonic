@@ -232,31 +232,114 @@ std::unique_ptr<ASTNode>
 Parser::parsePower() {
 
     auto node =
-            parsePrimary();
+            parseSuperscript();
 
     if (match(TokenType::Power)) {
 
         auto right =
                 parseUnary();
 
-        auto parent =
-                std::make_unique<ASTNode>(
-                        NodeType::Binary
-                );
-
-        parent->op =
-                OperatorType::Power;
-
-        parent->left =
-                std::move(node);
-
-        parent->right =
-                std::move(right);
-
-        return parent;
+        return createPowerNode(
+                std::move(node),
+                std::move(right)
+        );
     }
 
     return node;
+}
+std::unique_ptr<ASTNode>
+Parser::parseSuperscript() {
+
+    auto node =
+            parsePrimary();
+
+    while (
+            check(TokenType::SuperscriptNumber) ||
+                    check(TokenType::SuperscriptPlus) ||
+                    check(TokenType::SuperscriptMinus)
+            ) {
+
+        double exponent = 0.0;
+
+        if (
+                check(TokenType::SuperscriptNumber)
+                ) {
+
+            exponent =
+                    current().value;
+
+            position++;
+
+        } else {
+
+            const TokenType sign =
+                    current().type;
+
+            position++;
+
+            if (
+                    !check(
+                            TokenType::SuperscriptNumber
+                    )
+                    ) {
+
+                throw std::runtime_error(
+                        "Expected superscript number"
+                );
+            }
+
+            exponent =
+                    current().value;
+
+            position++;
+
+            if (
+                    sign ==
+                            TokenType::SuperscriptMinus
+                    ) {
+                exponent =
+                        -exponent;
+            }
+        }
+
+        auto exponentNode =
+                std::make_unique<ASTNode>(
+                        NodeType::Number
+                );
+
+        exponentNode->value =
+                exponent;
+
+        node =
+                createPowerNode(
+                        std::move(node),
+                        std::move(exponentNode)
+                );
+    }
+
+    return node;
+}
+std::unique_ptr<ASTNode>
+Parser::createPowerNode(
+        std::unique_ptr<ASTNode> base,
+        std::unique_ptr<ASTNode> exponent
+) {
+
+    auto parent =
+            std::make_unique<ASTNode>(
+                    NodeType::Binary
+            );
+
+    parent->op =
+            OperatorType::Power;
+
+    parent->left =
+            std::move(base);
+
+    parent->right =
+            std::move(exponent);
+
+    return parent;
 }
 
 std::unique_ptr<ASTNode>

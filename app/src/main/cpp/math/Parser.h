@@ -32,7 +32,6 @@ private:
             TokenType type,
             const char* message
     );
-
     std::unique_ptr<ASTNode>
     parseExpression();
 
@@ -46,7 +45,16 @@ private:
     parsePower();
 
     std::unique_ptr<ASTNode>
+    parseSuperscript();
+
+    std::unique_ptr<ASTNode>
     parsePrimary();
+
+    std::unique_ptr<ASTNode>
+    createPowerNode(
+            std::unique_ptr<ASTNode> base,
+            std::unique_ptr<ASTNode> exponent
+    );
 
     bool startsImplicitMultiplication() const;
 };

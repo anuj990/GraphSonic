@@ -18,7 +18,195 @@ char Lexer::currentChar() const {
 bool Lexer::isAtEnd() const {
     return position >= expression.size();
 }
+bool Lexer::startsWith(
+        const char* value
+) const {
 
+    const std::string symbol(value);
+
+    if (
+            position + symbol.size() >
+                    expression.size()
+            ) {
+        return false;
+    }
+
+    return expression.compare(
+            position,
+            symbol.size(),
+            symbol
+    ) == 0;
+}
+
+Token Lexer::readMathSymbol() {
+
+    if (startsWith("π")) {
+
+        position +=
+                std::string("π").size();
+
+        return Token(
+                TokenType::Number,
+                3.14159265358979323846
+        );
+    }
+
+    if (startsWith("√")) {
+
+        position +=
+                std::string("√").size();
+
+        return Token(
+                TokenType::Function,
+                "sqrt"
+        );
+    }
+
+    if (startsWith("∛")) {
+
+        position +=
+                std::string("∛").size();
+
+        return Token(
+                TokenType::Function,
+                "cbrt"
+        );
+    }
+
+    if (startsWith("×")) {
+
+        position +=
+                std::string("×").size();
+
+        return Token(
+                TokenType::Multiply
+        );
+    }
+
+    if (startsWith("÷")) {
+
+        position +=
+                std::string("÷").size();
+
+        return Token(
+                TokenType::Divide
+        );
+    }
+
+    if (startsWith("−")) {
+
+        position +=
+                std::string("−").size();
+
+        return Token(
+                TokenType::Minus
+        );
+    }
+
+    throw std::runtime_error(
+            "Unsupported mathematical symbol"
+    );
+}
+Token Lexer::readSuperscript() {
+
+    if (startsWith("⁰")) {
+        position += std::string("⁰").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                0.0
+        );
+    }
+
+    if (startsWith("¹")) {
+        position += std::string("¹").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                1.0
+        );
+    }
+
+    if (startsWith("²")) {
+        position += std::string("²").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                2.0
+        );
+    }
+
+    if (startsWith("³")) {
+        position += std::string("³").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                3.0
+        );
+    }
+
+    if (startsWith("⁴")) {
+        position += std::string("⁴").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                4.0
+        );
+    }
+
+    if (startsWith("⁵")) {
+        position += std::string("⁵").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                5.0
+        );
+    }
+
+    if (startsWith("⁶")) {
+        position += std::string("⁶").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                6.0
+        );
+    }
+
+    if (startsWith("⁷")) {
+        position += std::string("⁷").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                7.0
+        );
+    }
+
+    if (startsWith("⁸")) {
+        position += std::string("⁸").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                8.0
+        );
+    }
+
+    if (startsWith("⁹")) {
+        position += std::string("⁹").size();
+        return Token(
+                TokenType::SuperscriptNumber,
+                9.0
+        );
+    }
+
+    if (startsWith("⁺")) {
+        position += std::string("⁺").size();
+        return Token(
+                TokenType::SuperscriptPlus
+        );
+    }
+
+    if (startsWith("⁻")) {
+        position += std::string("⁻").size();
+        return Token(
+                TokenType::SuperscriptMinus
+        );
+    }
+
+    throw std::runtime_error(
+            "Invalid superscript"
+    );
+}
 void Lexer::skipWhitespace() {
     while (
             !isAtEnd() &&
@@ -268,7 +456,40 @@ std::vector<Token> Lexer::tokenize() {
         if (isAtEnd()) {
             break;
         }
+        if (
+                static_cast<unsigned char>(
+                        currentChar()
+                ) >= 128
+                ) {
 
+            if (
+                    startsWith("⁰") ||
+                            startsWith("¹") ||
+                            startsWith("²") ||
+                            startsWith("³") ||
+                            startsWith("⁴") ||
+                            startsWith("⁵") ||
+                            startsWith("⁶") ||
+                            startsWith("⁷") ||
+                            startsWith("⁸") ||
+                            startsWith("⁹") ||
+                            startsWith("⁺") ||
+                            startsWith("⁻")
+                    ) {
+
+                tokens.push_back(
+                        readSuperscript()
+                );
+
+            } else {
+
+                tokens.push_back(
+                        readMathSymbol()
+                );
+            }
+
+            continue;
+        }
         const char c =
                 currentChar();
 

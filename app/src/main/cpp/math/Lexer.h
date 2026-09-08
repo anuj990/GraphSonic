@@ -18,9 +18,11 @@ private:
 
     char currentChar() const;
     void skipWhitespace();
-
+    Token readSuperscript();
     Token readNumber();
     Token readIdentifier();
+    Token readMathSymbol();
 
     bool isAtEnd() const;
+    bool startsWith(const char* value) const;
 };

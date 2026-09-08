@@ -2,8 +2,21 @@
 #include <string>
 
 using namespace std;
-enum class TokenType{
-    Number , Variable,Plus,Minus,Multiply,Divide,Power,LeftParen,RightParen,Function,End
+enum class TokenType {
+    Number,
+    Variable,
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+    Power,
+    LeftParen,
+    RightParen,
+    Function,
+    SuperscriptNumber,
+    SuperscriptPlus,
+    SuperscriptMinus,
+    End
 };
 
 struct Token{
