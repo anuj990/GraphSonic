@@ -46,6 +46,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -54,6 +55,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
