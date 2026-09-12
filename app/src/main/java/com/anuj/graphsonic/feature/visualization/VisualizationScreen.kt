@@ -48,7 +48,7 @@ fun VisualizationScreen(
     onExpressionEnabledChanged: (Long, Boolean) -> Unit,
     onExpressionAudioEnabledChanged: (Long, Boolean) -> Unit,
     onRemoveExpression: (Long) -> Unit,
-    onEditExpression: (Long, String) -> Boolean,
+    onEditExpression: (Long, String) -> String?,
     modifier: Modifier = Modifier,
     frequencyMode: FrequencyMode,
     volume: Double,
@@ -67,6 +67,7 @@ fun VisualizationScreen(
     var addDialogVisible by rememberSaveable {
         mutableStateOf(false)
     }
+
     var addMethodDialogVisible by rememberSaveable {
         mutableStateOf(false)
     }
@@ -82,6 +83,7 @@ fun VisualizationScreen(
     var addError by rememberSaveable {
         mutableStateOf<String?>(null)
     }
+
     var editDialogVisible by rememberSaveable {
         mutableStateOf(false)
     }
@@ -107,8 +109,7 @@ fun VisualizationScreen(
             cursor = cursor,
             listenState = listenState,
             onCursorChanged = onCursorChanged,
-            evaluateAt =
-                evaluateAt,
+            evaluateAt = evaluateAt,
             onViewportChanged = onViewportChanged,
             modifier = Modifier.fillMaxSize()
         )
@@ -161,9 +162,11 @@ fun VisualizationScreen(
                 ) {
 
                     items(
-                        items = graphLayers, key = {
+                        items = graphLayers,
+                        key = {
                             it.id
-                        }) { layer ->
+                        }
+                    ) { layer ->
 
                         Column(
                             modifier = Modifier
@@ -195,35 +198,49 @@ fun VisualizationScreen(
                                         )
 
                                         Switch(
-                                            checked = layer.enabled, onCheckedChange = {
+                                            checked = layer.enabled,
+                                            onCheckedChange = {
                                                 onExpressionEnabledChanged(
-                                                    layer.id, it
+                                                    layer.id,
+                                                    it
                                                 )
-                                            })
+                                            }
+                                        )
 
                                         Text(
                                             text = "Audio"
                                         )
 
                                         Switch(
-                                            checked = layer.audioEnabled, onCheckedChange = {
+                                            checked = layer.audioEnabled,
+                                            onCheckedChange = {
                                                 onExpressionAudioEnabledChanged(
-                                                    layer.id, it
+                                                    layer.id,
+                                                    it
                                                 )
-                                            })
+                                            }
+                                        )
                                     }
                                 }
+
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
 
                                     TextButton(
                                         onClick = {
-                                            editingExpressionId = layer.id
-                                            editingExpression = layer.expression
+                                            editingExpressionId =
+                                                layer.id
+
+                                            editingExpression =
+                                                layer.expression
+
                                             editError = null
-                                            editDialogVisible = true
-                                        }) {
+
+                                            editDialogVisible =
+                                                true
+                                        }
+                                    ) {
                                         Text(
                                             text = "Edit"
                                         )
@@ -234,7 +251,8 @@ fun VisualizationScreen(
                                             onRemoveExpression(
                                                 layer.id
                                             )
-                                        }) {
+                                        }
+                                    ) {
                                         Text(
                                             text = "Remove"
                                         )
@@ -255,11 +273,13 @@ fun VisualizationScreen(
                     Alignment.BottomCenter
                 )
                 .fillMaxWidth()
-                .padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
             ListenInfoCard(
-                listenState = listenState, modifier = Modifier.padding(
+                listenState = listenState,
+                modifier = Modifier.padding(
                     bottom = 8.dp
                 )
             )
@@ -276,13 +296,18 @@ fun VisualizationScreen(
                 },
                 onStart = onStartListening,
                 onStop = onStopListening,
-                onFrequencyModeChanged = onFrequencyModeChanged,
-                onPlaybackSpeedChanged = onPlaybackSpeedChanged,
-                onVolumeChanged = onVolumeChanged,
-                onWaveformChanged = onWaveformChanged
+                onFrequencyModeChanged =
+                    onFrequencyModeChanged,
+                onPlaybackSpeedChanged =
+                    onPlaybackSpeedChanged,
+                onVolumeChanged =
+                    onVolumeChanged,
+                onWaveformChanged =
+                    onWaveformChanged
             )
         }
     }
+
     if (addMethodDialogVisible) {
 
         AlertDialog(
@@ -344,6 +369,7 @@ fun VisualizationScreen(
             }
         )
     }
+
     if (historyDialogVisible) {
 
         AlertDialog(
@@ -370,7 +396,9 @@ fun VisualizationScreen(
 
                         items(
                             items = history,
-                            key = { it }
+                            key = {
+                                it
+                            }
                         ) { expression ->
 
                             TextButton(
@@ -382,7 +410,8 @@ fun VisualizationScreen(
                                         )
 
                                     if (success) {
-                                        historyDialogVisible = false
+                                        historyDialogVisible =
+                                            false
                                     }
                                 },
                                 modifier =
@@ -414,154 +443,205 @@ fun VisualizationScreen(
             }
         )
     }
+
     if (addDialogVisible) {
 
-        AlertDialog(onDismissRequest = {
-            addDialogVisible = false
-        }, title = {
-            Text(
-                text = "Add equation"
-            )
-        }, text = {
-
-            Column {
-
-                OutlinedTextField(
-                    value = newExpression, onValueChange = {
-                    newExpression = it
-                    addError = null
-                }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = {
-                    Text(
-                        text = "Enter equation"
-                    )
-                }, isError = addError != null
+        AlertDialog(
+            onDismissRequest = {
+                addDialogVisible = false
+            },
+            title = {
+                Text(
+                    text = "Add equation"
                 )
+            },
+            text = {
 
-                if (addError != null) {
+                Column {
 
-                    Text(
-                        text = addError!!, modifier = Modifier.padding(
-                            top = 8.dp
+                    OutlinedTextField(
+                        value = newExpression,
+                        onValueChange = {
+                            newExpression = it
+                            addError = null
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = {
+                            Text(
+                                text = "Enter equation"
+                            )
+                        },
+                        isError =
+                            addError != null
+                    )
+
+                    if (addError != null) {
+
+                        Text(
+                            text = addError!!,
+                            modifier =
+                                Modifier.padding(
+                                    top = 8.dp
+                                )
                         )
+                    }
+                }
+            },
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        val expression =
+                            newExpression.trim()
+
+                        if (
+                            expression.isEmpty()
+                        ) {
+                            addError =
+                                "Enter an equation"
+                            return@Button
+                        }
+
+                        val success =
+                            onAddExpression(
+                                expression
+                            )
+
+                        if (success) {
+                            addDialogVisible = false
+                            newExpression = ""
+                        } else {
+                            addError =
+                                "Equation is invalid"
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Add"
+                    )
+                }
+            },
+            dismissButton = {
+
+                OutlinedButton(
+                    onClick = {
+                        addDialogVisible = false
+                    }
+                ) {
+                    Text(
+                        text = "Cancel"
                     )
                 }
             }
-        }, confirmButton = {
-
-            Button(
-                onClick = {
-
-                    val expression = newExpression.trim()
-
-                    if (expression.isEmpty()) {
-                        addError = "Enter an equation"
-                        return@Button
-                    }
-
-                    val success = onAddExpression(
-                        expression
-                    )
-
-                    if (success) {
-                        addDialogVisible = false
-                        newExpression = ""
-                    } else {
-                        addError = "Equation is invalid"
-                    }
-                }) {
-                Text(
-                    text = "Add"
-                )
-            }
-        }, dismissButton = {
-
-            OutlinedButton(
-                onClick = {
-                    addDialogVisible = false
-                }) {
-                Text(
-                    text = "Cancel"
-                )
-            }
-        })
+        )
     }
+
     if (editDialogVisible) {
 
-        AlertDialog(onDismissRequest = {
-            editDialogVisible = false
-        }, title = {
-            Text(
-                text = "Edit equation"
-            )
-        }, text = {
-
-            Column {
-
-                OutlinedTextField(
-                    value = editingExpression, onValueChange = {
-                    editingExpression = it
-                    editError = null
-                }, modifier = Modifier.fillMaxWidth(), singleLine = true, placeholder = {
-                    Text(
-                        text = "Enter equation"
-                    )
-                }, isError = editError != null
+        AlertDialog(
+            onDismissRequest = {
+                editDialogVisible = false
+            },
+            title = {
+                Text(
+                    text = "Edit equation"
                 )
+            },
+            text = {
 
-                if (editError != null) {
+                Column {
 
-                    Text(
-                        text = editError!!, modifier = Modifier.padding(
-                            top = 8.dp
+                    OutlinedTextField(
+                        value = editingExpression,
+                        onValueChange = {
+                            editingExpression = it
+                            editError = null
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = {
+                            Text(
+                                text = "Enter equation"
+                            )
+                        },
+                        isError =
+                            editError != null
+                    )
+
+                    if (editError != null) {
+
+                        Text(
+                            text = editError!!,
+                            modifier =
+                                Modifier.padding(
+                                    top = 8.dp
+                                )
                         )
+                    }
+                }
+            },
+            confirmButton = {
+
+                Button(
+                    onClick = {
+
+                        val id =
+                            editingExpressionId
+
+                        if (id == null) {
+                            editError =
+                                "Equation not found"
+                            return@Button
+                        }
+
+                        val expression =
+                            editingExpression.trim()
+
+                        if (
+                            expression.isEmpty()
+                        ) {
+                            editError =
+                                "Enter an equation"
+                            return@Button
+                        }
+
+                        val error =
+                            onEditExpression(
+                                id,
+                                expression
+                            )
+
+                        if (error == null) {
+                            editDialogVisible = false
+                            editingExpressionId =
+                                null
+                            editingExpression = ""
+                        } else {
+                            editError = error
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Save"
+                    )
+                }
+            },
+            dismissButton = {
+
+                OutlinedButton(
+                    onClick = {
+                        editDialogVisible = false
+                    }
+                ) {
+                    Text(
+                        text = "Cancel"
                     )
                 }
             }
-        }, confirmButton = {
-
-            Button(
-                onClick = {
-
-                    val id = editingExpressionId
-
-                    if (id == null) {
-                        editError = "Equation not found"
-                        return@Button
-                    }
-
-                    val expression = editingExpression.trim()
-
-                    if (expression.isEmpty()) {
-                        editError = "Enter an equation"
-                        return@Button
-                    }
-
-                    val success = onEditExpression(
-                        id, expression
-                    )
-
-                    if (success) {
-                        editDialogVisible = false
-                        editingExpressionId = null
-                        editingExpression = ""
-                    } else {
-                        editError = "Equation is invalid"
-                    }
-                }) {
-                Text(
-                    text = "Save"
-                )
-            }
-        }, dismissButton = {
-
-            OutlinedButton(
-                onClick = {
-                    editDialogVisible = false
-                }) {
-                Text(
-                    text = "Cancel"
-                )
-            }
-        })
+        )
     }
 }

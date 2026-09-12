@@ -42,10 +42,12 @@ class VisualizationViewModel(
 
     private val nativeBridge =
         NativeBridge()
+
     private val historyRepository =
         EquationHistoryRepository(
             application
         )
+
     private val _history =
         MutableStateFlow(
             historyRepository.getHistory()
@@ -54,6 +56,7 @@ class VisualizationViewModel(
     val history:
             StateFlow<List<String>> =
         _history.asStateFlow()
+
     private val graphEngine =
         GraphEngine(
             nativeBridge
@@ -141,6 +144,7 @@ class VisualizationViewModel(
     fun loadExpression(
         expression: String
     ): Boolean {
+
         val success =
             replaceExpressions(
                 listOf(expression)
@@ -373,7 +377,6 @@ class VisualizationViewModel(
                 ) {
                     throw IllegalArgumentException()
                 }
-                
 
                 val id =
                     nextLayerId++
@@ -463,6 +466,7 @@ class VisualizationViewModel(
 
             newHandles.values.forEach {
                     handle ->
+
                 nativeBridge.destroyExpression(
                     handle
                 )
@@ -559,15 +563,17 @@ class VisualizationViewModel(
             )
         }
     }
+
     fun editExpression(
         id: Long,
         expression: String
-    ): Boolean {
+    ): String? {
 
         val cleaned =
             expression.trim()
 
         if (cleaned.isEmpty()) {
+
             _uiState.update {
                 it.copy(
                     errorMessage =
@@ -575,34 +581,104 @@ class VisualizationViewModel(
                 )
             }
 
-            return false
+            return "Enter an equation"
         }
 
         val oldHandle =
             expressionHandles[id]
-                ?: return false
+                ?: return "Equation not found"
 
-        val layer =
-            _uiState.value.graphLayers
-                .firstOrNull {
-                    it.id == id
-                }
-                ?: return false
+        _uiState.value.graphLayers
+            .firstOrNull {
+                it.id == id
+            }
+            ?: return "Equation not found"
 
-        return try {
+        val newHandle =
+            try {
 
-            val newHandle =
                 nativeBridge.createExpression(
                     cleaned
                 )
 
-            if (newHandle == 0L) {
-                throw IllegalArgumentException()
+            } catch (
+                exception: Exception
+            ) {
+
+                _uiState.update {
+                    it.copy(
+                        errorMessage =
+                            "Equation is invalid"
+                    )
+                }
+
+                return "Equation is invalid"
             }
-            val canonicalExpression =
+
+        if (
+            newHandle == 0L
+        ) {
+
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Equation is invalid"
+                )
+            }
+
+            return "Equation is invalid"
+        }
+
+        val canonicalExpression =
+            try {
+
                 nativeBridge.getCanonicalExpression(
                     newHandle
                 )
+
+            } catch (
+                exception: Exception
+            ) {
+
+                nativeBridge.destroyExpression(
+                    newHandle
+                )
+
+                _uiState.update {
+                    it.copy(
+                        errorMessage =
+                            "Equation is invalid"
+                    )
+                }
+
+                return "Equation is invalid"
+            }
+
+        val duplicate =
+            _uiState.value.graphLayers.any {
+                it.id != id &&
+                        it.canonicalExpression ==
+                        canonicalExpression
+            }
+
+        if (duplicate) {
+
+            nativeBridge.destroyExpression(
+                newHandle
+            )
+
+            _uiState.update {
+                it.copy(
+                    errorMessage =
+                        "Equation already added"
+                )
+            }
+
+            return "Equation already added"
+        }
+
+        return try {
+
             val graph =
                 graphEngine.generateGraph(
                     expressionHandle =
@@ -673,11 +749,22 @@ class VisualizationViewModel(
                 )
             }
 
-            true
+            historyRepository.addEquation(
+                cleaned
+            )
+
+            _history.value =
+                historyRepository.getHistory()
+
+            null
 
         } catch (
             exception: Exception
         ) {
+
+            nativeBridge.destroyExpression(
+                newHandle
+            )
 
             _uiState.update {
                 it.copy(
@@ -686,7 +773,7 @@ class VisualizationViewModel(
                 )
             }
 
-            false
+            "Equation is invalid"
         }
     }
 
@@ -718,11 +805,14 @@ class VisualizationViewModel(
         }
 
         if (!enabled) {
+
             listenController.setEnabled(
                 id,
                 false
             )
+
         } else {
+
             val layer =
                 _uiState.value.graphLayers
                     .firstOrNull {
