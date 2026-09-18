@@ -133,14 +133,9 @@ class ListenController(
     fun removeGraphData(
         id: Long
     ) {
-        val index =
-            voiceIndex(id)
-
         equations.remove(id)
 
-        audioEngine.clearVoice(
-            index
-        )
+        audioEngine.clearVoices()
 
         _state.value =
             _state.value.copy(
