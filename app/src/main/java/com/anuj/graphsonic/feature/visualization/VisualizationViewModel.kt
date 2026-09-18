@@ -1238,21 +1238,6 @@ class VisualizationViewModel(
                     if (graph == null) {
                         layer
                     } else {
-
-                        listenController.setGraphData(
-                            id =
-                                layer.id,
-                            graphData =
-                                graph
-                        )
-
-                        listenController.setExpression(
-                            id =
-                                layer.id,
-                            expression =
-                                layer.expression
-                        )
-
                         layer.copy(
                             graphData =
                                 graph
@@ -1264,6 +1249,24 @@ class VisualizationViewModel(
                 generation ==
                 samplingGeneration.get()
             ) {
+
+                updatedLayers.forEach {
+                        layer ->
+
+                    listenController.setGraphData(
+                        id =
+                            layer.id,
+                        graphData =
+                            layer.graphData
+                    )
+
+                    listenController.setExpression(
+                        id =
+                            layer.id,
+                        expression =
+                            layer.expression
+                    )
+                }
 
                 _uiState.update {
                         state ->
