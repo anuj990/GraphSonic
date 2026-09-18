@@ -119,6 +119,71 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
 
 extern "C"
 JNIEXPORT jstring JNICALL
+Java_com_anuj_graphsonic_engine_NativeBridge_validateExpression(
+        JNIEnv* env,
+        jobject,
+        jstring expression
+) {
+    if (expression == nullptr) {
+        return env->NewStringUTF(
+                "Expression cannot be null"
+        );
+    }
+
+    const char* chars =
+            env->GetStringUTFChars(
+                    expression,
+                    nullptr
+            );
+
+    if (chars == nullptr) {
+        return env->NewStringUTF(
+                "Unable to read expression"
+        );
+    }
+
+    try {
+
+        Expression nativeExpression(chars);
+
+        env->ReleaseStringUTFChars(
+                expression,
+                chars
+        );
+
+        return nullptr;
+
+    } catch (
+            const std::exception& exception
+    ) {
+
+        const std::string message =
+                exception.what();
+
+        env->ReleaseStringUTFChars(
+                expression,
+                chars
+        );
+
+        return env->NewStringUTF(
+                message.c_str()
+        );
+
+    } catch (...) {
+
+        env->ReleaseStringUTFChars(
+                expression,
+                chars
+        );
+
+        return env->NewStringUTF(
+                "Invalid expression"
+        );
+    }
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
 Java_com_anuj_graphsonic_engine_NativeBridge_getCanonicalExpression(
         JNIEnv* env,
         jobject,

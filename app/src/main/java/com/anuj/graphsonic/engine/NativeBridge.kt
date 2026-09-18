@@ -12,6 +12,10 @@ class NativeBridge {
         expression: String
     ): Long
 
+    external fun validateExpression(
+        expression: String
+    ): String?
+
     external fun evaluateExpression(
         handle: Long,
         x: Double
@@ -32,5 +36,8 @@ class NativeBridge {
     external fun destroyExpression(
         handle: Long
     )
-    external fun getCanonicalExpression(handle: Long): String
+
+    external fun getCanonicalExpression(
+        handle: Long
+    ): String
 }

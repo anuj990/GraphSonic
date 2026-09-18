@@ -111,13 +111,19 @@ fun AppNavigation(
 
                         success
                     },
+                    onValidate = { expression ->
+                        viewModel.validateExpression(
+                            expression
+                        )
+                    },
                     onHistory = {
                         navController.navigate(
                             AppDestination.History.route
                         ) {
                             launchSingleTop = true
                         }
-                    }
+                    }   ,
+                    
                 )
             }
 

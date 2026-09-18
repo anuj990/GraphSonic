@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
-
 data class VisualizationUiState(
     val graphLayers: List<GraphLayer> = emptyList(),
     val graphData: GraphData = GraphData(emptyList()),
@@ -33,13 +32,9 @@ class VisualizationViewModel(
 
     companion object {
         private const val MAX_EQUATIONS = 8
-
         private const val INITIAL_SAMPLE_COUNT = 3000
-
         private const val SAMPLES_PER_PIXEL = 3.0
-
         private const val MIN_VIEWPORT_SAMPLES = 1000
-
         private const val MAX_VIEWPORT_SAMPLES = 20000
     }
 
@@ -47,23 +42,18 @@ class VisualizationViewModel(
         NativeBridge()
 
     private val historyRepository =
-        EquationHistoryRepository(
-            application
-        )
+        EquationHistoryRepository(application)
 
     private val _history =
         MutableStateFlow(
             historyRepository.getHistory()
         )
 
-    val history:
-            StateFlow<List<String>> =
+    val history: StateFlow<List<String>> =
         _history.asStateFlow()
 
     private val graphEngine =
-        GraphEngine(
-            nativeBridge
-        )
+        GraphEngine(nativeBridge)
 
     private val listenController =
         ListenController(
@@ -74,8 +64,7 @@ class VisualizationViewModel(
     private val viewportController =
         GraphViewportController(
             scope = viewModelScope,
-            onViewportSettled =
-                ::resampleGraphs
+            onViewportSettled = ::resampleGraphs
         )
 
     private val _uiState =
@@ -83,8 +72,7 @@ class VisualizationViewModel(
             VisualizationUiState()
         )
 
-    val uiState:
-            StateFlow<VisualizationUiState> =
+    val uiState: StateFlow<VisualizationUiState> =
         _uiState.asStateFlow()
 
     private val _cursor =
@@ -92,8 +80,7 @@ class VisualizationViewModel(
             GraphCursorState()
         )
 
-    val cursor:
-            StateFlow<GraphCursorState> =
+    val cursor: StateFlow<GraphCursorState> =
         _cursor.asStateFlow()
 
     private val _frequencyMode =
@@ -101,8 +88,7 @@ class VisualizationViewModel(
             FrequencyMode.Continuous
         )
 
-    val frequencyMode:
-            StateFlow<FrequencyMode> =
+    val frequencyMode: StateFlow<FrequencyMode> =
         _frequencyMode.asStateFlow()
 
     private val _waveform =
@@ -110,33 +96,25 @@ class VisualizationViewModel(
             Waveform.Sine
         )
 
-    val waveform:
-            StateFlow<Waveform> =
+    val waveform: StateFlow<Waveform> =
         _waveform.asStateFlow()
 
     private val _playbackSpeed =
-        MutableStateFlow(
-            1.0
-        )
+        MutableStateFlow(1.0)
 
-    val playbackSpeed:
-            StateFlow<Double> =
+    val playbackSpeed: StateFlow<Double> =
         _playbackSpeed.asStateFlow()
 
     private val _volume =
-        MutableStateFlow(
-            0.15
-        )
+        MutableStateFlow(0.15)
 
-    val volume:
-            StateFlow<Double> =
+    val volume: StateFlow<Double> =
         _volume.asStateFlow()
 
     val listenState =
         listenController.state
 
-    private var nextLayerId =
-        1L
+    private var nextLayerId = 1L
 
     private val expressionHandles =
         LinkedHashMap<Long, Long>()
@@ -146,6 +124,88 @@ class VisualizationViewModel(
 
     private val samplingGeneration =
         AtomicLong(0L)
+    fun validateExpression(
+        expression: String
+    ): String? {
+
+        val cleaned =
+            expression.trim()
+
+        if (cleaned.isEmpty()) {
+            return null
+        }
+
+        if (!isCompleteExpressionForValidation(cleaned)) {
+            return null
+        }
+
+        return try {
+            nativeBridge.validateExpression(
+                cleaned
+            )
+        } catch (exception: Exception) {
+            getErrorMessage(
+                exception,
+                "Invalid expression"
+            )
+        }
+    }
+    private fun isCompleteExpressionForValidation(
+        expression: String
+    ): Boolean {
+
+        var depth = 0
+
+        expression.forEach { character ->
+
+            when (character) {
+                '(' -> depth++
+                ')' -> {
+                    depth--
+
+                    if (depth < 0) {
+                        return false
+                    }
+                }
+            }
+        }
+
+        if (depth != 0) {
+            return false
+        }
+
+        val last =
+            expression.lastOrNull()
+                ?: return false
+
+        return last.isLetterOrDigit() ||
+                last == ')' ||
+                last == 'π' ||
+                last == '²' ||
+                last == '³' ||
+                last == '⁴' ||
+                last == '⁵' ||
+                last == '⁶' ||
+                last == '⁷' ||
+                last == '⁸' ||
+                last == '⁹' ||
+                last == '⁰'
+    }
+
+    private fun getErrorMessage(
+        exception: Exception,
+        fallback: String
+    ): String {
+        val message =
+            exception.message
+                ?.trim()
+                ?.takeIf {
+                    it.isNotEmpty()
+                }
+
+        return message ?: fallback
+    }
+
     fun loadExpression(
         expression: String
     ): Boolean {
@@ -206,10 +266,10 @@ class VisualizationViewModel(
                     cleaned
                 )
 
-            if (
-                handle == 0L
-            ) {
-                throw IllegalArgumentException()
+            if (handle == 0L) {
+                throw IllegalArgumentException(
+                    "Unable to create expression"
+                )
             }
 
             val canonicalExpression =
@@ -243,8 +303,7 @@ class VisualizationViewModel(
 
             val graph =
                 graphEngine.generateGraph(
-                    expressionHandle =
-                        handle,
+                    expressionHandle = handle,
                     xMin = -10.0,
                     xMax = 10.0,
                     sampleCount =
@@ -284,15 +343,12 @@ class VisualizationViewModel(
                     it.graphLayers + layer
 
                 it.copy(
-                    graphLayers =
-                        layers,
+                    graphLayers = layers,
                     graphData =
                         layers
                             .firstOrNull()
                             ?.graphData
-                            ?: GraphData(
-                                emptyList()
-                            ),
+                            ?: GraphData(emptyList()),
                     errorMessage = null
                 )
             }
@@ -306,14 +362,15 @@ class VisualizationViewModel(
 
             true
 
-        } catch (
-            exception: Exception
-        ) {
+        } catch (exception: Exception) {
 
             _uiState.update {
                 it.copy(
                     errorMessage =
-                        "Equation is invalid"
+                        getErrorMessage(
+                            exception,
+                            "Equation is invalid"
+                        )
                 )
             }
 
@@ -334,9 +391,7 @@ class VisualizationViewModel(
                     it.isNotEmpty()
                 }
 
-        if (
-            cleaned.isEmpty()
-        ) {
+        if (cleaned.isEmpty()) {
             _uiState.update {
                 it.copy(
                     errorMessage =
@@ -347,9 +402,7 @@ class VisualizationViewModel(
             return false
         }
 
-        if (
-            cleaned.size > MAX_EQUATIONS
-        ) {
+        if (cleaned.size > MAX_EQUATIONS) {
             _uiState.update {
                 it.copy(
                     errorMessage =
@@ -377,10 +430,10 @@ class VisualizationViewModel(
                         expression
                     )
 
-                if (
-                    handle == 0L
-                ) {
-                    throw IllegalArgumentException()
+                if (handle == 0L) {
+                    throw IllegalArgumentException(
+                        "Unable to create expression"
+                    )
                 }
 
                 val id =
@@ -407,12 +460,10 @@ class VisualizationViewModel(
                 newLayers +=
                     GraphLayer(
                         id = id,
-                        expression =
-                            expression,
+                        expression = expression,
                         canonicalExpression =
                             canonicalExpression,
-                        graphData =
-                            graph,
+                        graphData = graph,
                         enabled = true,
                         audioEnabled = true,
                         colorIndex =
@@ -430,15 +481,13 @@ class VisualizationViewModel(
                     layer ->
 
                 listenController.setGraphData(
-                    id =
-                        layer.id,
+                    id = layer.id,
                     graphData =
                         layer.graphData
                 )
 
                 listenController.setExpression(
-                    id =
-                        layer.id,
+                    id = layer.id,
                     expression =
                         layer.expression
                 )
@@ -452,9 +501,7 @@ class VisualizationViewModel(
                         newLayers
                             .firstOrNull()
                             ?.graphData
-                            ?: GraphData(
-                                emptyList()
-                            ),
+                            ?: GraphData(emptyList()),
                     isLoading = false,
                     errorMessage = null,
                     isListening = false
@@ -465,9 +512,7 @@ class VisualizationViewModel(
 
             true
 
-        } catch (
-            exception: Exception
-        ) {
+        } catch (exception: Exception) {
 
             newHandles.values.forEach {
                     handle ->
@@ -480,7 +525,10 @@ class VisualizationViewModel(
             _uiState.update {
                 it.copy(
                     errorMessage =
-                        "One or more equations are invalid",
+                        getErrorMessage(
+                            exception,
+                            "One or more equations are invalid"
+                        ),
                     isLoading = false
                 )
             }
@@ -498,6 +546,7 @@ class VisualizationViewModel(
         nativeLock.writeLock().lock()
 
         try {
+
             expressionHandles.values.forEach {
                     handle ->
 
@@ -535,13 +584,9 @@ class VisualizationViewModel(
         try {
 
             val handle =
-                expressionHandles.remove(
-                    id
-                )
+                expressionHandles.remove(id)
 
-            if (
-                handle != null
-            ) {
+            if (handle != null) {
                 nativeBridge.destroyExpression(
                     handle
                 )
@@ -551,9 +596,7 @@ class VisualizationViewModel(
             nativeLock.writeLock().unlock()
         }
 
-        listenController.removeGraphData(
-            id
-        )
+        listenController.removeGraphData(id)
 
         val remaining =
             _uiState.value.graphLayers
@@ -572,15 +615,12 @@ class VisualizationViewModel(
 
         _uiState.update {
             it.copy(
-                graphLayers =
-                    remaining,
+                graphLayers = remaining,
                 graphData =
                     remaining
                         .firstOrNull()
                         ?.graphData
-                        ?: GraphData(
-                            emptyList()
-                        )
+                        ?: GraphData(emptyList())
             )
         }
     }
@@ -622,32 +662,37 @@ class VisualizationViewModel(
                     cleaned
                 )
 
-            } catch (
-                exception: Exception
-            ) {
+            } catch (exception: Exception) {
+
+                val message =
+                    getErrorMessage(
+                        exception,
+                        "Equation is invalid"
+                    )
 
                 _uiState.update {
                     it.copy(
                         errorMessage =
-                            "Equation is invalid"
+                            message
                     )
                 }
 
-                return "Equation is invalid"
+                return message
             }
 
-        if (
-            newHandle == 0L
-        ) {
+        if (newHandle == 0L) {
+
+            val message =
+                "Unable to create expression"
 
             _uiState.update {
                 it.copy(
                     errorMessage =
-                        "Equation is invalid"
+                        message
                 )
             }
 
-            return "Equation is invalid"
+            return message
         }
 
         val canonicalExpression =
@@ -657,22 +702,26 @@ class VisualizationViewModel(
                     newHandle
                 )
 
-            } catch (
-                exception: Exception
-            ) {
+            } catch (exception: Exception) {
 
                 nativeBridge.destroyExpression(
                     newHandle
                 )
 
+                val message =
+                    getErrorMessage(
+                        exception,
+                        "Equation is invalid"
+                    )
+
                 _uiState.update {
                     it.copy(
                         errorMessage =
-                            "Equation is invalid"
+                            message
                     )
                 }
 
-                return "Equation is invalid"
+                return message
             }
 
         val duplicate =
@@ -741,16 +790,12 @@ class VisualizationViewModel(
                 _uiState.value.graphLayers.map {
                         currentLayer ->
 
-                    if (
-                        currentLayer.id == id
-                    ) {
+                    if (currentLayer.id == id) {
                         currentLayer.copy(
-                            expression =
-                                cleaned,
+                            expression = cleaned,
                             canonicalExpression =
                                 canonicalExpression,
-                            graphData =
-                                graph
+                            graphData = graph
                         )
                     } else {
                         currentLayer
@@ -773,9 +818,7 @@ class VisualizationViewModel(
                                         firstLayerId
                             }
                             ?.graphData
-                            ?: GraphData(
-                                emptyList()
-                            ),
+                            ?: GraphData(emptyList()),
                     errorMessage = null
                 )
             }
@@ -789,22 +832,26 @@ class VisualizationViewModel(
 
             null
 
-        } catch (
-            exception: Exception
-        ) {
+        } catch (exception: Exception) {
 
             nativeBridge.destroyExpression(
                 newHandle
             )
 
+            val message =
+                getErrorMessage(
+                    exception,
+                    "Equation is invalid"
+                )
+
             _uiState.update {
                 it.copy(
                     errorMessage =
-                        "Equation is invalid"
+                        message
                 )
             }
 
-            "Equation is invalid"
+            message
         }
     }
 
@@ -813,20 +860,15 @@ class VisualizationViewModel(
         enabled: Boolean
     ) {
 
-        _uiState.update {
-                state ->
+        _uiState.update { state ->
 
             state.copy(
                 graphLayers =
-                    state.graphLayers.map {
-                            layer ->
+                    state.graphLayers.map { layer ->
 
-                        if (
-                            layer.id == id
-                        ) {
+                        if (layer.id == id) {
                             layer.copy(
-                                enabled =
-                                    enabled
+                                enabled = enabled
                             )
                         } else {
                             layer
@@ -862,17 +904,13 @@ class VisualizationViewModel(
         enabled: Boolean
     ) {
 
-        _uiState.update {
-                state ->
+        _uiState.update { state ->
 
             state.copy(
                 graphLayers =
-                    state.graphLayers.map {
-                            layer ->
+                    state.graphLayers.map { layer ->
 
-                        if (
-                            layer.id == id
-                        ) {
+                        if (layer.id == id) {
                             layer.copy(
                                 audioEnabled =
                                     enabled
@@ -1096,9 +1134,7 @@ class VisualizationViewModel(
 
         try {
 
-            if (
-                expressionHandles.isEmpty()
-            ) {
+            if (expressionHandles.isEmpty()) {
                 return
             }
 
@@ -1153,9 +1189,7 @@ class VisualizationViewModel(
         screenWidth: Float
     ) {
 
-        if (
-            expressionHandles.isEmpty()
-        ) {
+        if (expressionHandles.isEmpty()) {
             return
         }
 
@@ -1203,6 +1237,7 @@ class VisualizationViewModel(
 
         val generation =
             samplingGeneration.incrementAndGet()
+
         _uiState.update {
             it.copy(
                 isLoading = true
@@ -1217,8 +1252,7 @@ class VisualizationViewModel(
         ) {
 
             val updatedLayers =
-                layers.map {
-                        layer ->
+                layers.map { layer ->
 
                     val graph =
                         nativeLock.readLock().let { lock ->
@@ -1230,12 +1264,9 @@ class VisualizationViewModel(
                                 val handle =
                                     expressionHandles[layer.id]
 
-                                if (
-                                    handle == null
-                                ) {
+                                if (handle == null) {
                                     null
                                 } else {
-
                                     graphEngine.generateGraph(
                                         expressionHandle =
                                             handle,
@@ -1255,8 +1286,7 @@ class VisualizationViewModel(
                         layer
                     } else {
                         layer.copy(
-                            graphData =
-                                graph
+                            graphData = graph
                         )
                     }
                 }
@@ -1270,22 +1300,19 @@ class VisualizationViewModel(
                         layer ->
 
                     listenController.setGraphData(
-                        id =
-                            layer.id,
+                        id = layer.id,
                         graphData =
                             layer.graphData
                     )
 
                     listenController.setExpression(
-                        id =
-                            layer.id,
+                        id = layer.id,
                         expression =
                             layer.expression
                     )
                 }
 
-                _uiState.update {
-                        state ->
+                _uiState.update { state ->
 
                     state.copy(
                         graphLayers =
@@ -1294,9 +1321,7 @@ class VisualizationViewModel(
                             updatedLayers
                                 .firstOrNull()
                                 ?.graphData
-                                ?: GraphData(
-                                    emptyList()
-                                ),
+                                ?: GraphData(emptyList()),
                         isLoading = false
                     )
                 }
