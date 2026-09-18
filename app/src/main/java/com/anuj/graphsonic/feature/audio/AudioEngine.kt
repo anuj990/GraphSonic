@@ -4,6 +4,7 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import java.util.concurrent.atomic.AtomicReferenceArray
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.floor
@@ -100,7 +101,8 @@ class AudioEngine {
 
     private var audioJob:
             Thread? = null
-
+    private val lifecycleLock =
+        ReentrantLock()
     @Volatile
     private var running =
         false
@@ -217,21 +219,31 @@ class AudioEngine {
 
     fun start() {
 
-        if (running) {
-            return
-        }
+        lifecycleLock.lock()
 
-        running =
-            true
+        try {
 
-        audioTrack.play()
-
-        audioJob =
-            Thread {
-                generateAudio()
-            }.apply {
-                start()
+            if (running) {
+                return
             }
+
+            running = true
+
+            audioTrack.play()
+
+            val thread =
+                Thread {
+                    generateAudio()
+                }
+
+            audioJob =
+                thread
+
+            thread.start()
+
+        } finally {
+            lifecycleLock.unlock()
+        }
     }
 
     private fun generateSample(
@@ -280,148 +292,212 @@ class AudioEngine {
 
     private fun generateAudio() {
 
-        val samples =
-            ShortArray(
-                sampleRate / 50
-            )
+        try {
 
-        val smoothing =
-            0.02
+            val samples =
+                ShortArray(
+                    sampleRate / 50
+                )
 
-        while (running) {
+            val smoothing =
+                0.02
 
-            for (
-            index in samples.indices
-            ) {
-
-                var mixedSample =
-                    0.0
-
-                var activeVoices =
-                    0
+            while (running) {
 
                 for (
-                voiceIndex in 0 until maxVoices
+                index in samples.indices
                 ) {
 
-                    val voice =
-                        voices.get(
-                            voiceIndex
-                        )
-                            ?: continue
+                    var mixedSample =
+                        0.0
 
-                    if (
-                        !voice.active
+                    var activeVoices =
+                        0
+
+                    for (
+                    voiceIndex in 0 until maxVoices
                     ) {
-                        continue
-                    }
 
-                    currentFrequencies[
-                        voiceIndex
-                    ] +=
-                        (
-                                voice.frequency -
-                                        currentFrequencies[
-                                            voiceIndex
-                                        ]
-                                ) *
-                                smoothing
+                        val voice =
+                            voices.get(
+                                voiceIndex
+                            )
+                                ?: continue
 
-                    mixedSample +=
-                        generateSample(
+                        if (
+                            !voice.active
+                        ) {
+                            continue
+                        }
+
+                        currentFrequencies[
+                            voiceIndex
+                        ] +=
+                            (
+                                    voice.frequency -
+                                            currentFrequencies[
+                                                voiceIndex
+                                            ]
+                                    ) *
+                                    smoothing
+
+                        mixedSample +=
+                            generateSample(
+                                phases[
+                                    voiceIndex
+                                ],
+                                voice.waveform
+                            ) *
+                                    voice.volume
+
+                        val phaseStep =
+                            2.0 *
+                                    PI *
+                                    currentFrequencies[
+                                        voiceIndex
+                                    ] /
+                                    sampleRate.toDouble()
+
+                        phases[
+                            voiceIndex
+                        ] +=
+                            phaseStep
+
+                        if (
                             phases[
                                 voiceIndex
-                            ],
-                            voice.waveform
-                        ) *
-                                voice.volume
-
-                    val phaseStep =
-                        2.0 *
-                                PI *
-                                currentFrequencies[
-                                    voiceIndex
-                                ] /
-                                sampleRate.toDouble()
-
-                    phases[
-                        voiceIndex
-                    ] +=
-                        phaseStep
-
-                    if (
-                        phases[
-                            voiceIndex
-                        ] >=
-                        2.0 * PI
-                    ) {
-                        phases[
-                            voiceIndex
-                        ] -=
+                            ] >=
                             2.0 * PI
+                        ) {
+                            phases[
+                                voiceIndex
+                            ] -=
+                                2.0 * PI
+                        }
+
+                        activeVoices++
                     }
 
-                    activeVoices++
-                }
-
-                if (
-                    activeVoices > 1
-                ) {
-                    mixedSample /=
-                        sqrt(
-                            activeVoices.toDouble()
-                        )
-                }
-
-                val output =
-                    (
-                            mixedSample *
-                                    Short.MAX_VALUE *
-                                    masterVolume
+                    if (
+                        activeVoices > 1
+                    ) {
+                        mixedSample /=
+                            sqrt(
+                                activeVoices.toDouble()
                             )
-                        .coerceIn(
-                            Short.MIN_VALUE.toDouble(),
-                            Short.MAX_VALUE.toDouble()
-                        )
-                        .toInt()
-                        .toShort()
+                    }
 
-                samples[index] =
-                    output
+                    val output =
+                        (
+                                mixedSample *
+                                        Short.MAX_VALUE *
+                                        masterVolume
+                                )
+                            .coerceIn(
+                                Short.MIN_VALUE.toDouble(),
+                                Short.MAX_VALUE.toDouble()
+                            )
+                            .toInt()
+                            .toShort()
+
+                    samples[index] =
+                        output
+                }
+
+                if (running) {
+                    audioTrack.write(
+                        samples,
+                        0,
+                        samples.size
+                    )
+                }
             }
 
-            if (running) {
-                audioTrack.write(
-                    samples,
-                    0,
-                    samples.size
-                )
+        } finally {
+
+            if (
+                Thread.currentThread() ===
+                audioJob
+            ) {
+                audioJob = null
             }
         }
     }
 
     fun stop() {
 
-        running =
-            false
+        lifecycleLock.lock()
 
-        audioJob?.interrupt()
-        audioJob = null
+        try {
 
-        if (
-            audioTrack.playState ==
-            AudioTrack.PLAYSTATE_PLAYING
-        ) {
-            audioTrack.pause()
+            running = false
+
+            val thread =
+                audioJob
+
+            if (
+                thread != null &&
+                thread !== Thread.currentThread()
+            ) {
+                thread.interrupt()
+
+                try {
+                    thread.join()
+                } catch (
+                    exception: InterruptedException
+                ) {
+                    Thread.currentThread().interrupt()
+                }
+            }
+
+            audioJob = null
+
+            if (
+                audioTrack.playState ==
+                AudioTrack.PLAYSTATE_PLAYING
+            ) {
+                audioTrack.pause()
+            }
+
+            audioTrack.flush()
+
+        } finally {
+            lifecycleLock.unlock()
         }
-
-        audioTrack.flush()
     }
 
     fun release() {
 
-        stop()
+        lifecycleLock.lock()
 
-        audioTrack.release()
+        try {
+
+            running = false
+
+            val thread =
+                audioJob
+
+            if (
+                thread != null &&
+                thread !== Thread.currentThread()
+            ) {
+                thread.interrupt()
+
+                try {
+                    thread.join()
+                } catch (
+                    exception: InterruptedException
+                ) {
+                    Thread.currentThread().interrupt()
+                }
+            }
+
+            audioJob = null
+
+            audioTrack.release()
+
+        } finally {
+            lifecycleLock.unlock()
+        }
     }
 }
