@@ -435,26 +435,26 @@ EvaluationResult Evaluator::evaluateFunction(
 
         result =
                 std::exp(argument);
-    }
-
-        /*
-         * Absolute value
-         */
-
-    else if (name == "abs") {
+    } else if (name == "abs") {
 
         result =
                 std::abs(argument);
-    }
 
-        /*
-         * Unknown function
-         */
+    } else if (name == "floor") {
 
-    else {
+        result =
+                std::floor(argument);
+
+    } else if (name == "ceil") {
+
+        result =
+                std::ceil(argument);
+
+    } else {
 
         return EvaluationResult::undefined();
     }
+       
 
     if (std::isnan(result)) {
         return EvaluationResult::undefined();

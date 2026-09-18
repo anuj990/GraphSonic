@@ -415,6 +415,8 @@ Token Lexer::readIdentifier() {
                     identifier == "log" ||
                     identifier == "ln" ||
                     identifier == "abs" ||
+                    identifier == "floor" ||
+                    identifier == "ceil" ||
                     identifier == "exp"
             ) {
         std::string functionName =
