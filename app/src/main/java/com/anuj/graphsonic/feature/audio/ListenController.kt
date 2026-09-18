@@ -1,3 +1,4 @@
+
 package com.anuj.graphsonic.feature.audio
 
 import com.anuj.graphsonic.domain.model.GraphData
@@ -224,8 +225,22 @@ class ListenController(
                 Dispatchers.Default
             ) {
 
+                val activeEquationsAtStart =
+                    synchronized(this@ListenController) {
+                        equations.values
+                            .filter {
+                                it.audioEnabled &&
+                                        it.segments.any { segment ->
+                                            segment.points.size >= 2
+                                        }
+                            }
+                            .toList()
+                    }
+
                 var x =
-                    startX
+                    findPlaybackStartX(
+                        activeEquationsAtStart
+                    )
 
                 while (
                     isActive &&
@@ -234,7 +249,10 @@ class ListenController(
                 ) {
 
                     if (x > endX) {
-                        x = startX
+                        x =
+                            findPlaybackStartX(
+                                activeEquationsAtStart
+                            )
                     }
 
                     val activeEquations =
@@ -384,6 +402,30 @@ class ListenController(
                     delay(10L)
                 }
             }
+    }
+
+    private fun findPlaybackStartX(
+        activeEquations: List<EquationVoice>
+    ): Double {
+        val firstDefinedX =
+            activeEquations
+                .asSequence()
+                .flatMap { equation ->
+                    equation.segments.asSequence()
+                }
+                .filter { segment ->
+                    segment.points.size >= 2 &&
+                            segment.startX.isFinite()
+                }
+                .map { segment ->
+                    segment.startX
+                }
+                .minOrNull()
+
+        return (firstDefinedX ?: startX).coerceIn(
+            startX,
+            endX
+        )
     }
 
     private fun voiceVolume(
