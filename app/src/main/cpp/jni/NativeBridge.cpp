@@ -1,8 +1,49 @@
 #include <jni.h>
 #include <limits>
+#include <exception>
+#include <string>
+#include <vector>
 
 #include "../math/Expression.h"
 #include "../graph/GraphSampler.h"
+
+namespace {
+
+    void throwIllegalArgumentException(
+            JNIEnv* env,
+            const char* message
+    ) {
+        jclass exceptionClass =
+                env->FindClass(
+                        "java/lang/IllegalArgumentException"
+                );
+
+        if (exceptionClass != nullptr) {
+            env->ThrowNew(
+                    exceptionClass,
+                    message
+            );
+        }
+    }
+
+    void throwIllegalStateException(
+            JNIEnv* env,
+            const char* message
+    ) {
+        jclass exceptionClass =
+                env->FindClass(
+                        "java/lang/IllegalStateException"
+                );
+
+        if (exceptionClass != nullptr) {
+            env->ThrowNew(
+                    exceptionClass,
+                    message
+            );
+        }
+    }
+
+}
 
 extern "C"
 JNIEXPORT jlong JNICALL
@@ -12,13 +53,8 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
         jstring expression
 ) {
     if (expression == nullptr) {
-        jclass exceptionClass =
-                env->FindClass(
-                        "java/lang/IllegalArgumentException"
-                );
-
-        env->ThrowNew(
-                exceptionClass,
+        throwIllegalArgumentException(
+                env,
                 "Expression cannot be null"
         );
 
@@ -58,19 +94,29 @@ Java_com_anuj_graphsonic_engine_NativeBridge_createExpression(
                 chars
         );
 
-        jclass exceptionClass =
-                env->FindClass(
-                        "java/lang/IllegalArgumentException"
-                );
-
-        env->ThrowNew(
-                exceptionClass,
+        throwIllegalArgumentException(
+                env,
                 exception.what()
+        );
+
+        return 0;
+
+    } catch (...) {
+
+        env->ReleaseStringUTFChars(
+                expression,
+                chars
+        );
+
+        throwIllegalArgumentException(
+                env,
+                "Failed to create expression"
         );
 
         return 0;
     }
 }
+
 extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_anuj_graphsonic_engine_NativeBridge_getCanonicalExpression(
@@ -78,18 +124,49 @@ Java_com_anuj_graphsonic_engine_NativeBridge_getCanonicalExpression(
         jobject,
         jlong handle
 ) {
+    if (handle == 0) {
+        throwIllegalArgumentException(
+                env,
+                "Expression handle is invalid"
+        );
+
+        return nullptr;
+    }
 
     auto* expression =
             reinterpret_cast<Expression*>(
                     handle
             );
 
-    const std::string canonical =
-            expression->canonical();
+    try {
 
-    return env->NewStringUTF(
-            canonical.c_str()
-    );
+        const std::string canonical =
+                expression->canonical();
+
+        return env->NewStringUTF(
+                canonical.c_str()
+        );
+
+    } catch (
+            const std::exception& exception
+    ) {
+
+        throwIllegalStateException(
+                env,
+                exception.what()
+        );
+
+        return nullptr;
+
+    } catch (...) {
+
+        throwIllegalStateException(
+                env,
+                "Failed to canonicalize expression"
+        );
+
+        return nullptr;
+    }
 }
 
 extern "C"
@@ -105,9 +182,20 @@ Java_com_anuj_graphsonic_engine_NativeBridge_evaluateExpression(
     }
 
     auto* expression =
-            reinterpret_cast<Expression*>(handle);
+            reinterpret_cast<Expression*>(
+                    handle
+            );
 
-    return expression->evaluate(x);
+    try {
+
+        return expression->evaluate(
+                x
+        );
+
+    } catch (...) {
+
+        return std::numeric_limits<double>::quiet_NaN();
+    }
 }
 
 extern "C"
@@ -123,11 +211,20 @@ Java_com_anuj_graphsonic_engine_NativeBridge_isDefined(
     }
 
     auto* expression =
-            reinterpret_cast<Expression*>(handle);
+            reinterpret_cast<Expression*>(
+                    handle
+            );
 
-    return expression->isDefined(x)
-           ? JNI_TRUE
-           : JNI_FALSE;
+    try {
+
+        return expression->isDefined(x)
+                ? JNI_TRUE
+                : JNI_FALSE;
+
+    } catch (...) {
+
+        return JNI_FALSE;
+    }
 }
 
 extern "C"
@@ -142,9 +239,16 @@ Java_com_anuj_graphsonic_engine_NativeBridge_destroyExpression(
     }
 
     auto* expression =
-            reinterpret_cast<Expression*>(handle);
+            reinterpret_cast<Expression*>(
+                    handle
+            );
 
-    delete expression;
+    try {
+
+        delete expression;
+
+    } catch (...) {
+    }
 }
 
 extern "C"
@@ -158,39 +262,71 @@ Java_com_anuj_graphsonic_engine_NativeBridge_generateGraph(
         jint sampleCount
 ) {
     if (handle == 0) {
+        throwIllegalArgumentException(
+                env,
+                "Expression handle is invalid"
+        );
+
         return nullptr;
     }
 
     auto* expression =
-            reinterpret_cast<Expression*>(handle);
-
-    const std::vector<double> points =
-            GraphSampler::sample(
-                    *expression,
-                    xMin,
-                    xMax,
-                    sampleCount
+            reinterpret_cast<Expression*>(
+                    handle
             );
 
-    jdoubleArray result =
-            env->NewDoubleArray(
+    try {
+
+        const std::vector<double> points =
+                GraphSampler::sample(
+                        *expression,
+                        xMin,
+                        xMax,
+                        sampleCount
+                );
+
+        jdoubleArray result =
+                env->NewDoubleArray(
+                        static_cast<jsize>(
+                                points.size()
+                        )
+                );
+
+        if (result == nullptr) {
+            return nullptr;
+        }
+
+        if (!points.empty()) {
+            env->SetDoubleArrayRegion(
+                    result,
+                    0,
                     static_cast<jsize>(
                             points.size()
-                    )
+                    ),
+                    points.data()
             );
+        }
 
-    if (result == nullptr) {
+        return result;
+
+    } catch (
+            const std::exception& exception
+    ) {
+
+        throwIllegalStateException(
+                env,
+                exception.what()
+        );
+
+        return nullptr;
+
+    } catch (...) {
+
+        throwIllegalStateException(
+                env,
+                "Failed to generate graph"
+        );
+
         return nullptr;
     }
-
-    env->SetDoubleArrayRegion(
-            result,
-            0,
-            static_cast<jsize>(
-                    points.size()
-            ),
-            points.data()
-    );
-
-    return result;
 }
