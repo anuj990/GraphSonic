@@ -409,10 +409,7 @@ Parser::createPowerNode(
 std::unique_ptr<ASTNode>
 Parser::parseFunction() {
 
-    if (
-            !check(TokenType::Function)
-            ) {
-
+    if (!check(TokenType::Function)) {
         return parsePrimary();
     }
 
@@ -431,9 +428,7 @@ Parser::parseFunction() {
 
         double exponent = 0.0;
 
-        if (
-                check(TokenType::SuperscriptNumber)
-                ) {
+        if (check(TokenType::SuperscriptNumber)) {
 
             exponent =
                     current().value;
@@ -447,12 +442,7 @@ Parser::parseFunction() {
 
             position++;
 
-            if (
-                    !check(
-                            TokenType::SuperscriptNumber
-                    )
-                    ) {
-
+            if (!check(TokenType::SuperscriptNumber)) {
                 throw std::runtime_error(
                         "Expected superscript number"
                 );
@@ -463,11 +453,7 @@ Parser::parseFunction() {
 
             position++;
 
-            if (
-                    sign ==
-                            TokenType::SuperscriptMinus
-                    ) {
-
+            if (sign == TokenType::SuperscriptMinus) {
                 exponent =
                         -exponent;
             }
@@ -481,16 +467,12 @@ Parser::parseFunction() {
     std::unique_ptr<ASTNode> argument;
     std::unique_ptr<ASTNode> secondArgument;
 
-    if (
-            match(TokenType::LeftParen)
-            ) {
+    if (match(TokenType::LeftParen)) {
 
         argument =
                 parseExpression();
 
-        if (
-                match(TokenType::Comma)
-                ) {
+        if (match(TokenType::Comma)) {
 
             if (functionName != "log") {
                 throw std::runtime_error(
@@ -510,7 +492,30 @@ Parser::parseFunction() {
     } else {
 
         argument =
-                parsePower();
+                parseUnary();
+
+        while (startsImplicitMultiplication()) {
+
+            auto right =
+                    parseUnary();
+
+            auto parent =
+                    std::make_unique<ASTNode>(
+                            NodeType::Binary
+                    );
+
+            parent->op =
+                    OperatorType::Multiply;
+
+            parent->left =
+                    std::move(argument);
+
+            parent->right =
+                    std::move(right);
+
+            argument =
+                    std::move(parent);
+        }
     }
 
     auto functionNode =
@@ -530,10 +535,8 @@ Parser::parseFunction() {
     std::unique_ptr<ASTNode> result =
             std::move(functionNode);
 
-    for (
-        double exponent :
-            superscriptExponents
-            ) {
+    for (double exponent :
+            superscriptExponents) {
 
         auto exponentNode =
                 std::make_unique<ASTNode>(
