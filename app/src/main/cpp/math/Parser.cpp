@@ -75,7 +75,7 @@ Parser::parseExpression() {
 
     while (
             check(TokenType::Plus) ||
-            check(TokenType::Minus)
+                    check(TokenType::Minus)
             ) {
 
         const TokenType operation =
@@ -93,9 +93,9 @@ Parser::parseExpression() {
 
         parent->op =
                 operation ==
-                TokenType::Plus
-                ? OperatorType::Plus
-                : OperatorType::Minus;
+                        TokenType::Plus
+                        ? OperatorType::Plus
+                        : OperatorType::Minus;
 
         parent->left =
                 std::move(node);
@@ -120,7 +120,7 @@ Parser::parseTerm() {
 
         if (
                 check(TokenType::Multiply) ||
-                check(TokenType::Divide)
+                        check(TokenType::Divide)
                 ) {
 
             const TokenType operation =
@@ -138,9 +138,9 @@ Parser::parseTerm() {
 
             parent->op =
                     operation ==
-                    TokenType::Multiply
-                    ? OperatorType::Multiply
-                    : OperatorType::Divide;
+                            TokenType::Multiply
+                            ? OperatorType::Multiply
+                            : OperatorType::Divide;
 
             parent->left =
                     std::move(node);
@@ -479,6 +479,7 @@ Parser::parseFunction() {
     }
 
     std::unique_ptr<ASTNode> argument;
+    std::unique_ptr<ASTNode> secondArgument;
 
     if (
             match(TokenType::LeftParen)
@@ -486,6 +487,20 @@ Parser::parseFunction() {
 
         argument =
                 parseExpression();
+
+        if (
+                match(TokenType::Comma)
+                ) {
+
+            if (functionName != "log") {
+                throw std::runtime_error(
+                        "Only log() accepts a second argument"
+                );
+            }
+
+            secondArgument =
+                    parseExpression();
+        }
 
         consume(
                 TokenType::RightParen,
@@ -508,6 +523,9 @@ Parser::parseFunction() {
 
     functionNode->left =
             std::move(argument);
+
+    functionNode->right =
+            std::move(secondArgument);
 
     std::unique_ptr<ASTNode> result =
             std::move(functionNode);

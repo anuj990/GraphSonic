@@ -211,11 +211,11 @@ Token Lexer::readSuperscript() {
 void Lexer::skipWhitespace() {
     while (
             !isAtEnd() &&
-            std::isspace(
-                    static_cast<unsigned char>(
-                            currentChar()
+                    std::isspace(
+                            static_cast<unsigned char>(
+                                    currentChar()
+                            )
                     )
-            )
             ) {
         position++;
     }
@@ -230,11 +230,11 @@ Token Lexer::readNumber() {
 
     while (
             !isAtEnd() &&
-            std::isdigit(
-                    static_cast<unsigned char>(
-                            currentChar()
+                    std::isdigit(
+                            static_cast<unsigned char>(
+                                    currentChar()
+                            )
                     )
-            )
             ) {
         hasDigitsBeforeDot = true;
         position++;
@@ -242,17 +242,17 @@ Token Lexer::readNumber() {
 
     if (
             !isAtEnd() &&
-            currentChar() == '.'
+                    currentChar() == '.'
             ) {
         position++;
 
         while (
                 !isAtEnd() &&
-                std::isdigit(
-                        static_cast<unsigned char>(
-                                currentChar()
+                        std::isdigit(
+                                static_cast<unsigned char>(
+                                        currentChar()
+                                )
                         )
-                )
                 ) {
             hasDigitsAfterDot = true;
             position++;
@@ -261,7 +261,7 @@ Token Lexer::readNumber() {
 
     if (
             !hasDigitsBeforeDot &&
-            !hasDigitsAfterDot
+                    !hasDigitsAfterDot
             ) {
         throw std::runtime_error(
                 "Invalid number"
@@ -270,10 +270,10 @@ Token Lexer::readNumber() {
 
     if (
             !isAtEnd() &&
-            (
-                    currentChar() == 'e' ||
-                    currentChar() == 'E'
-            )
+                    (
+                            currentChar() == 'e' ||
+                                    currentChar() == 'E'
+                    )
             ) {
 
         const std::size_t exponentStart =
@@ -283,10 +283,10 @@ Token Lexer::readNumber() {
 
         if (
                 !isAtEnd() &&
-                (
-                        currentChar() == '+' ||
-                        currentChar() == '-'
-                )
+                        (
+                                currentChar() == '+' ||
+                                        currentChar() == '-'
+                        )
                 ) {
             position++;
         }
@@ -296,24 +296,24 @@ Token Lexer::readNumber() {
 
         while (
                 !isAtEnd() &&
-                std::isdigit(
-                        static_cast<unsigned char>(
-                                currentChar()
+                        std::isdigit(
+                                static_cast<unsigned char>(
+                                        currentChar()
+                                )
                         )
-                )
                 ) {
             position++;
         }
 
         if (
                 exponentDigitsStart ==
-                position
+                        position
                 ) {
             throw std::runtime_error(
                     "Invalid exponent near position " +
-                    std::to_string(
-                            exponentStart
-                    )
+                            std::to_string(
+                                    exponentStart
+                            )
             );
         }
     }
@@ -344,7 +344,7 @@ Token Lexer::readNumber() {
     ) {
         throw std::runtime_error(
                 "Invalid number: " +
-                text
+                        text
         );
     }
 }
@@ -447,7 +447,7 @@ Token Lexer::readIdentifier() {
 
     if (
             identifier == "pi" ||
-            identifier == "π"
+                    identifier == "π"
             ) {
 
         return Token(
@@ -466,7 +466,7 @@ Token Lexer::readIdentifier() {
 
     throw std::runtime_error(
             "Unknown identifier: " +
-            identifier
+                    identifier
     );
 }
 
@@ -524,7 +524,7 @@ std::vector<Token> Lexer::tokenize() {
                                 c
                         )
                 ) ||
-                c == '.'
+                        c == '.'
                 ) {
 
             tokens.push_back(
@@ -596,6 +596,13 @@ std::vector<Token> Lexer::tokenize() {
             case ')':
                 tokens.emplace_back(
                         TokenType::RightParen
+                );
+                position++;
+                break;
+
+            case ',':
+                tokens.emplace_back(
+                        TokenType::Comma
                 );
                 position++;
                 break;

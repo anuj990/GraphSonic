@@ -16,6 +16,7 @@ enum class TokenType {
     SuperscriptNumber,
     SuperscriptPlus,
     SuperscriptMinus,
+    Comma,
     End
 };
 
@@ -31,4 +32,3 @@ struct Token{
             : type(type), text(text) {}
 
 };
-

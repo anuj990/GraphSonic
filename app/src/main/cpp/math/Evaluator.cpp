@@ -140,6 +140,46 @@ EvaluationResult Evaluator::evaluateNode(
                 return argument;
             }
 
+            if (
+                    node.functionName == "log" &&
+                            node.right
+                    ) {
+
+                const EvaluationResult base =
+                        evaluateNode(
+                                *node.right,
+                                x
+                        );
+
+                if (!base.isValid()) {
+                    return base;
+                }
+
+                if (
+                        argument.value <= 0.0 ||
+                                base.value <= 0.0 ||
+                                base.value == 1.0
+                        ) {
+                    return EvaluationResult::undefined();
+                }
+
+                const double result =
+                        std::log(argument.value) /
+                                std::log(base.value);
+
+                if (std::isnan(result)) {
+                    return EvaluationResult::undefined();
+                }
+
+                if (std::isinf(result)) {
+                    return EvaluationResult::overflow();
+                }
+
+                return EvaluationResult::valid(
+                        result
+                );
+            }
+
             return evaluateFunction(
                     node,
                     argument.value
@@ -193,9 +233,6 @@ EvaluationResult Evaluator::evaluateBinary(
 
         case OperatorType::Power:
 
-            /*
-             * 0^negative = undefined
-             */
             if (
                     left == 0.0 &&
                             right < 0.0
@@ -203,10 +240,6 @@ EvaluationResult Evaluator::evaluateBinary(
                 return EvaluationResult::undefined();
             }
 
-            /*
-             * Negative base with a non-integer
-             * exponent is not real-valued.
-             */
             if (
                     left < 0.0 &&
                             std::floor(right) != right
@@ -214,9 +247,6 @@ EvaluationResult Evaluator::evaluateBinary(
                 return EvaluationResult::undefined();
             }
 
-            /*
-             * 0^0 is mathematically indeterminate.
-             */
             if (
                     left == 0.0 &&
                             right == 0.0
@@ -255,10 +285,6 @@ EvaluationResult Evaluator::evaluateFunction(
 
     double result = 0.0;
 
-    /*
-     * Trigonometric functions
-     */
-
     if (name == "sin") {
 
         result =
@@ -271,15 +297,6 @@ EvaluationResult Evaluator::evaluateFunction(
 
     } else if (name == "tan") {
 
-        /*
-         * tan(x) is undefined when:
-         *
-         * cos(x) = 0
-         *
-         * Detect this before calling tan()
-         * because std::tan() can return a very
-         * large finite value near an asymptote.
-         */
         const double cosine =
                 std::cos(argument);
 
@@ -329,13 +346,7 @@ EvaluationResult Evaluator::evaluateFunction(
                 1.0 /
                         sine;
 
-    }
-
-        /*
-         * Inverse trigonometric functions
-         */
-
-    else if (name == "asin") {
+    } else if (name == "asin") {
 
         if (
                 argument < -1.0 ||
@@ -363,13 +374,8 @@ EvaluationResult Evaluator::evaluateFunction(
 
         result =
                 std::atan(argument);
-    }
 
-        /*
-         * Hyperbolic functions
-         */
-
-    else if (name == "sinh") {
+    } else if (name == "sinh") {
 
         result =
                 std::sinh(argument);
@@ -383,13 +389,8 @@ EvaluationResult Evaluator::evaluateFunction(
 
         result =
                 std::tanh(argument);
-    }
 
-        /*
-         * Square / cube root
-         */
-
-    else if (name == "sqrt") {
+    } else if (name == "sqrt") {
 
         if (argument < 0.0) {
             return EvaluationResult::undefined();
@@ -402,13 +403,8 @@ EvaluationResult Evaluator::evaluateFunction(
 
         result =
                 std::cbrt(argument);
-    }
 
-        /*
-         * Logarithms
-         */
-
-    else if (name == "ln") {
+    } else if (name == "ln") {
 
         if (argument <= 0.0) {
             return EvaluationResult::undefined();
@@ -425,16 +421,12 @@ EvaluationResult Evaluator::evaluateFunction(
 
         result =
                 std::log10(argument);
-    }
 
-        /*
-         * Exponential
-         */
-
-    else if (name == "exp") {
+    } else if (name == "exp") {
 
         result =
                 std::exp(argument);
+
     } else if (name == "abs") {
 
         result =
@@ -454,7 +446,6 @@ EvaluationResult Evaluator::evaluateFunction(
 
         return EvaluationResult::undefined();
     }
-       
 
     if (std::isnan(result)) {
         return EvaluationResult::undefined();
