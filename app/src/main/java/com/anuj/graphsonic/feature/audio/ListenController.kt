@@ -42,21 +42,27 @@ class ListenController(
     val state: StateFlow<ListenState> =
         _state.asStateFlow()
 
+    @Volatile
     private var frequencyMode =
         FrequencyMode.Continuous
 
+    @Volatile
     private var volume =
         0.15
 
+    @Volatile
     private var playbackSpeed =
         1.0
 
+    @Volatile
     private var startX =
         -10.0
 
+    @Volatile
     private var endX =
         10.0
 
+    @Volatile
     private var step =
         0.01
 
@@ -65,9 +71,11 @@ class ListenController(
 
     private val playbackGeneration =
         AtomicLong(0L)
+
     private val equations =
         LinkedHashMap<Long, EquationVoice>()
 
+    @Volatile
     private var defaultWaveform =
         Waveform.Sine
 
@@ -278,6 +286,7 @@ class ListenController(
                         ) {
                             return@launch
                         }
+
                         val y =
                             evaluateAt(
                                 equation.id,
@@ -348,7 +357,8 @@ class ListenController(
                                     expression =
                                         equation.expression,
                                     isDefined = false,
-                                    x = x
+                                    x = x,
+                                    y = y
                                 )
                         }
                     }
