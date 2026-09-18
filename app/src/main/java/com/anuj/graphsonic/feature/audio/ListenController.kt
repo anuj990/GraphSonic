@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicLong
 
 class ListenController(
     private val scope: CoroutineScope,
@@ -62,6 +63,8 @@ class ListenController(
     private var playbackJob: Job? =
         null
 
+    private val playbackGeneration =
+        AtomicLong(0L)
     private val equations =
         LinkedHashMap<Long, EquationVoice>()
 
@@ -186,6 +189,9 @@ class ListenController(
             return
         }
 
+        val generation =
+            playbackGeneration.incrementAndGet()
+
         val hasUsableVoice =
             synchronized(this) {
                 equations.values.any {
@@ -218,7 +224,11 @@ class ListenController(
                 var x =
                     startX
 
-                while (isActive) {
+                while (
+                    isActive &&
+                    playbackGeneration.get() ==
+                    generation
+                ) {
 
                     if (x > endX) {
                         x = startX
@@ -262,6 +272,12 @@ class ListenController(
                             index,
                             equation ->
 
+                        if (
+                            playbackGeneration.get() !=
+                            generation
+                        ) {
+                            return@launch
+                        }
                         val y =
                             evaluateAt(
                                 equation.id,
@@ -462,6 +478,8 @@ class ListenController(
     }
 
     fun stop() {
+
+        playbackGeneration.incrementAndGet()
 
         playbackJob?.cancel()
         playbackJob = null
