@@ -18,6 +18,7 @@ namespace {
     bool isNearZero(double value) {
         return std::abs(value) < TAN_DOMAIN_EPSILON;
     }
+
     bool isOddInteger(double value) {
         if (!std::isfinite(value)) {
             return false;
