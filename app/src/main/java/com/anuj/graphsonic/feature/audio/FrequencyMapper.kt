@@ -1,6 +1,5 @@
 package com.anuj.graphsonic.feature.audio
 
-import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.round
@@ -37,20 +36,16 @@ class FrequencyMapper {
     private fun mapContinuous(
         value: Double
     ): Double {
-        val magnitude =
-            abs(value).coerceAtLeast(
-                0.000001
-            )
-
         val normalized =
-            ln(1.0 + magnitude) /
-                    ln(101.0)
+            (
+                    value.coerceIn(
+                        -100.0,
+                        100.0
+                    ) + 100.0
+                    ) / 200.0
 
         return minFrequency +
-                normalized.coerceIn(
-                    0.0,
-                    1.0
-                ) *
+                normalized *
                 (
                         maxFrequency -
                                 minFrequency
