@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.math.sqrt
 
 class ListenController(
     private val scope: CoroutineScope,
@@ -369,15 +368,7 @@ class ListenController(
     private fun voiceVolume(
         count: Int
     ): Double {
-
-        if (count <= 1) {
-            return 1.0
-        }
-
-        return 1.0 /
-                sqrt(
-                    count.toDouble()
-                )
+        return 1.0
     }
 
     @Synchronized
