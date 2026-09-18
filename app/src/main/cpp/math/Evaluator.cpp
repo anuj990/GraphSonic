@@ -18,6 +18,26 @@ namespace {
     bool isNearZero(double value) {
         return std::abs(value) < TAN_DOMAIN_EPSILON;
     }
+    bool isOddInteger(double value) {
+        if (!std::isfinite(value)) {
+            return false;
+        }
+
+        const double rounded =
+                std::round(value);
+
+        if (std::abs(value - rounded) > 1e-12) {
+            return false;
+        }
+
+        const double remainder =
+                std::fmod(
+                        std::abs(rounded),
+                        2.0
+                );
+
+        return remainder == 1.0;
+    }
 
 }
 
@@ -235,30 +255,61 @@ EvaluationResult Evaluator::evaluateBinary(
 
             if (
                     left == 0.0 &&
-                            right < 0.0
-                    ) {
-                return EvaluationResult::undefined();
-            }
-
-            if (
-                    left < 0.0 &&
-                            std::floor(right) != right
+                            right == 0.0
                     ) {
                 return EvaluationResult::undefined();
             }
 
             if (
                     left == 0.0 &&
-                            right == 0.0
+                            right < 0.0
                     ) {
                 return EvaluationResult::undefined();
             }
 
-            result =
-                    std::pow(
-                            left,
-                            right
-                    );
+            if (left < 0.0) {
+
+                const double rounded =
+                        std::round(right);
+
+                if (
+                        std::abs(right - rounded) >
+                                1e-12
+                        ) {
+
+                    const double reciprocal =
+                            1.0 / right;
+
+                    if (!isOddInteger(reciprocal)) {
+                        return EvaluationResult::undefined();
+                    }
+
+                    const double magnitude =
+                            std::pow(
+                                    -left,
+                                    right
+                            );
+
+                    result =
+                            -magnitude;
+
+                } else {
+
+                    result =
+                            std::pow(
+                                    left,
+                                    right
+                            );
+                }
+
+            } else {
+
+                result =
+                        std::pow(
+                                left,
+                                right
+                        );
+            }
 
             break;
     }
