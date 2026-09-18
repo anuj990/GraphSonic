@@ -1,7 +1,5 @@
 package com.anuj.graphsonic.feature.visualization.components
 
-
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.anuj.graphsonic.feature.visualization.GraphCursorState
@@ -10,9 +8,9 @@ import com.anuj.graphsonic.feature.visualization.utils.graphToScreen
 
 fun DrawScope.drawGraphCursor(
     cursor: GraphCursorState,
-    viewport: GraphViewport
+    viewport: GraphViewport,
+    color: Color = Color.White
 ) {
-
     if (
         !cursor.visible ||
         !cursor.x.isFinite()
@@ -21,10 +19,7 @@ fun DrawScope.drawGraphCursor(
     }
 
     cursor.values.forEachIndexed { index, value ->
-
-        if (
-            !value.y.isFinite()
-        ) {
+        if (!value.y.isFinite()) {
             return@forEachIndexed
         }
 
@@ -47,16 +42,30 @@ fun DrawScope.drawGraphCursor(
         }
 
         drawCircle(
-            color =
-                pointerColor(index),
-            radius = 8f,
+            color = pointerColor(index),
+            radius = 9f,
             center = position
         )
 
         drawCircle(
-            color = Color.White,
+            color = color,
             radius = 4f,
             center = position
         )
+    }
+}
+
+fun pointerColor(
+    index: Int
+): Color {
+    return when (index % 8) {
+        0 -> Color(0xFF4F7CFF)
+        1 -> Color(0xFFFF5C7A)
+        2 -> Color(0xFF43B581)
+        3 -> Color(0xFFB26CFF)
+        4 -> Color(0xFFFFA63D)
+        5 -> Color(0xFF35C2C9)
+        6 -> Color(0xFF9A7B62)
+        else -> Color(0xFFE45B9A)
     }
 }

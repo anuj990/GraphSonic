@@ -1,19 +1,35 @@
 package com.anuj.graphsonic.feature.visualization.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 import com.anuj.graphsonic.feature.audio.FrequencyMode
 import com.anuj.graphsonic.feature.audio.Waveform
-import java.util.Locale
 
 @Composable
 fun ListenControls(
@@ -34,14 +50,12 @@ fun ListenControls(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement =
-            Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Button(
                 onClick = {
@@ -51,27 +65,33 @@ fun ListenControls(
                         onStart()
                     }
                 },
-                modifier =
-                    Modifier.weight(1f)
+                modifier = Modifier.weight(1f)
             ) {
+                Icon(
+                    imageVector =
+                        if (isPlaying) {
+                            Icons.Default.Pause
+                        } else {
+                            Icons.Default.PlayArrow
+                        },
+                    contentDescription = null
+                )
+
                 Text(
                     text =
                         if (isPlaying) {
                             "Stop"
                         } else {
                             "Listen"
-                        }
+                        },
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
 
-            Button(
+            OutlinedButton(
                 onClick = {
-                    onExpandedChanged(
-                        !expanded
-                    )
-                },
-                modifier =
-                    Modifier.weight(1f)
+                    onExpandedChanged(!expanded)
+                }
             ) {
                 Text(
                     text =
@@ -81,207 +101,166 @@ fun ListenControls(
                             "Controls"
                         }
                 )
+
+                Icon(
+                    imageVector =
+                        if (expanded) {
+                            Icons.Default.ExpandLess
+                        } else {
+                            Icons.Default.ExpandMore
+                        },
+                    contentDescription = null,
+                    modifier = Modifier.padding(start = 6.dp)
+                )
             }
         }
 
-        Text(
-            text =
-                "Mode: ${
-                    if (
-                        frequencyMode ==
-                        FrequencyMode.Continuous
-                    ) {
-                        "Continuous"
-                    } else {
-                        "Musical"
-                    }
-                }"
-        )
-
-        Text(
-            text =
-                "Waveform: ${
-                    waveformLabel(waveform)
-                }"
-        )
-
-        if (expanded) {
-            Button(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected =
+                    frequencyMode ==
+                            FrequencyMode.Continuous,
                 onClick = {
                     onFrequencyModeChanged(
-                        if (
-                            frequencyMode ==
-                            FrequencyMode.Continuous
-                        ) {
-                            FrequencyMode.Musical
-                        } else {
-                            FrequencyMode.Continuous
-                        }
+                        FrequencyMode.Continuous
                     )
                 },
-                modifier =
-                    Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text =
-                        if (
-                            frequencyMode ==
-                            FrequencyMode.Continuous
-                        ) {
-                            "Switch to Musical"
-                        } else {
-                            "Switch to Continuous"
-                        }
-                )
-            }
-
-            Text(
-                text = "Waveform"
+                label = {
+                    Text("Continuous")
+                },
+                modifier = Modifier.weight(1f)
             )
 
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        onWaveformChanged(
-                            previousWaveform(
-                                waveform
-                            )
-                        )
-                    },
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-                    Text("-")
-                }
-
-                Text(
-                    text =
-                        waveformLabel(
-                            waveform
-                        ),
-                    modifier =
-                        Modifier
-                            .weight(2f)
-                            .padding(
-                                horizontal = 8.dp,
-                                vertical = 12.dp
-                            )
-                )
-
-                Button(
-                    onClick = {
-                        onWaveformChanged(
-                            nextWaveform(
-                                waveform
-                            )
-                        )
-                    },
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-                    Text("+")
-                }
-            }
-
-            Text(
-                text =
-                    String.format(
-                        Locale.US,
-                        "Speed %.2fx",
-                        playbackSpeed
-                    )
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        onPlaybackSpeedChanged(
-                            playbackSpeed - 0.25
-                        )
-                    },
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-                    Text("-")
-                }
-
-                Button(
-                    onClick = {
-                        onPlaybackSpeedChanged(
-                            playbackSpeed + 0.25
-                        )
-                    },
-                    modifier =
-                        Modifier.weight(1f)
-                ) {
-                    Text("+")
-                }
-            }
-
-            Text(
-                text =
-                    "Volume ${
-                        (volume * 100.0).toInt()
-                    }%"
-            )
-
-            Slider(
-                value =
-                    volume.toFloat(),
-                onValueChange = {
-                    onVolumeChanged(
-                        it.toDouble()
+            FilterChip(
+                selected =
+                    frequencyMode ==
+                            FrequencyMode.Musical,
+                onClick = {
+                    onFrequencyModeChanged(
+                        FrequencyMode.Musical
                     )
                 },
-                valueRange = 0f..1f
+                label = {
+                    Text("Musical")
+                },
+                modifier = Modifier.weight(1f)
             )
         }
-    }
-}
 
-private fun nextWaveform(
-    waveform: Waveform
-): Waveform {
-    return when (waveform) {
-        Waveform.Sine ->
-            Waveform.Triangle
+        AnimatedVisibility(
+            visible = expanded,
+            enter =
+                expandVertically() +
+                        fadeIn(),
+            exit =
+                shrinkVertically() +
+                        fadeOut()
+        ) {
+            Column(
+                verticalArrangement =
+                    Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Waveform",
+                    style =
+                        MaterialTheme.typography.labelLarge
+                )
 
-        Waveform.Triangle ->
-            Waveform.Square
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+                    Waveform.entries.forEach { item ->
+                        FilterChip(
+                            selected = waveform == item,
+                            onClick = {
+                                onWaveformChanged(item)
+                            },
+                            label = {
+                                Text(
+                                    waveformLabel(item)
+                                )
+                            },
+                            modifier =
+                                Modifier.weight(1f)
+                        )
+                    }
+                }
 
-        Waveform.Square ->
-            Waveform.Saw
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Playback speed",
+                            style =
+                                MaterialTheme.typography.labelLarge
+                        )
 
-        Waveform.Saw ->
-            Waveform.Sine
-    }
-}
+                        Text(
+                            text = String.format(
+                                Locale.US,
+                                "%.2fx",
+                                playbackSpeed
+                            ),
+                            style =
+                                MaterialTheme.typography.labelLarge,
+                            color =
+                                MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-private fun previousWaveform(
-    waveform: Waveform
-): Waveform {
-    return when (waveform) {
-        Waveform.Sine ->
-            Waveform.Saw
+                    Slider(
+                        value = playbackSpeed.toFloat(),
+                        onValueChange = {
+                            onPlaybackSpeedChanged(
+                                it.toDouble()
+                            )
+                        },
+                        valueRange = 0.25f..3f
+                    )
+                }
 
-        Waveform.Triangle ->
-            Waveform.Sine
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Volume",
+                            style =
+                                MaterialTheme.typography.labelLarge
+                        )
 
-        Waveform.Square ->
-            Waveform.Triangle
+                        Text(
+                            text =
+                                "${(volume * 100).toInt()}%",
+                            style =
+                                MaterialTheme.typography.labelLarge,
+                            color =
+                                MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-        Waveform.Saw ->
-            Waveform.Square
+                    Slider(
+                        value = volume.toFloat(),
+                        onValueChange = {
+                            onVolumeChanged(
+                                it.toDouble()
+                            )
+                        },
+                        valueRange = 0f..1f
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -289,16 +268,9 @@ private fun waveformLabel(
     waveform: Waveform
 ): String {
     return when (waveform) {
-        Waveform.Sine ->
-            "Sine"
-
-        Waveform.Triangle ->
-            "Triangle"
-
-        Waveform.Square ->
-            "Square"
-
-        Waveform.Saw ->
-            "Saw"
+        Waveform.Sine -> "Sine"
+        Waveform.Triangle -> "Triangle"
+        Waveform.Square -> "Square"
+        Waveform.Saw -> "Saw"
     }
 }
