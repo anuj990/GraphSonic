@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.locks.ReentrantReadWriteLock
+
 
 data class VisualizationUiState(
     val graphLayers: List<GraphLayer> = emptyList(),
@@ -138,9 +141,11 @@ class VisualizationViewModel(
     private val expressionHandles =
         LinkedHashMap<Long, Long>()
 
-    private var samplingGeneration =
-        0L
+    private val nativeLock =
+        ReentrantReadWriteLock()
 
+    private val samplingGeneration =
+        AtomicLong(0L)
     fun loadExpression(
         expression: String
     ): Boolean {
@@ -486,20 +491,26 @@ class VisualizationViewModel(
 
     private fun clearExpressionsInternal() {
 
-        samplingGeneration +=
-            1L
+        samplingGeneration.incrementAndGet()
 
         listenController.reset()
 
-        expressionHandles.values.forEach {
-                handle ->
+        nativeLock.writeLock().lock()
 
-            nativeBridge.destroyExpression(
-                handle
-            )
+        try {
+            expressionHandles.values.forEach {
+                    handle ->
+
+                nativeBridge.destroyExpression(
+                    handle
+                )
+            }
+
+            expressionHandles.clear()
+
+        } finally {
+            nativeLock.writeLock().unlock()
         }
-
-        expressionHandles.clear()
     }
 
     fun clearExpressions() {
@@ -517,17 +528,27 @@ class VisualizationViewModel(
         id: Long
     ) {
 
-        val handle =
-            expressionHandles.remove(
-                id
-            )
+        samplingGeneration.incrementAndGet()
 
-        if (
-            handle != null
-        ) {
-            nativeBridge.destroyExpression(
-                handle
-            )
+        nativeLock.writeLock().lock()
+
+        try {
+
+            val handle =
+                expressionHandles.remove(
+                    id
+                )
+
+            if (
+                handle != null
+            ) {
+                nativeBridge.destroyExpression(
+                    handle
+                )
+            }
+
+        } finally {
+            nativeLock.writeLock().unlock()
         }
 
         listenController.removeGraphData(
@@ -689,12 +710,22 @@ class VisualizationViewModel(
                         INITIAL_SAMPLE_COUNT
                 )
 
-            expressionHandles[id] =
-                newHandle
+            samplingGeneration.incrementAndGet()
 
-            nativeBridge.destroyExpression(
-                oldHandle
-            )
+            nativeLock.writeLock().lock()
+
+            try {
+
+                expressionHandles[id] =
+                    newHandle
+
+                nativeBridge.destroyExpression(
+                    oldHandle
+                )
+
+            } finally {
+                nativeLock.writeLock().unlock()
+            }
 
             listenController.setGraphData(
                 id = id,
@@ -1154,20 +1185,13 @@ class VisualizationViewModel(
                 screenWidth
             )
 
-        samplingGeneration +=
-            1L
-
         val generation =
-            samplingGeneration
-
+            samplingGeneration.incrementAndGet()
         _uiState.update {
             it.copy(
                 isLoading = true
             )
         }
-
-        val handles =
-            expressionHandles.toMap()
 
         val layers =
             _uiState.value.graphLayers.toList()
@@ -1180,24 +1204,40 @@ class VisualizationViewModel(
                 layers.map {
                         layer ->
 
-                    val handle =
-                        handles[layer.id]
+                    val graph =
+                        nativeLock.readLock().let { lock ->
 
-                    if (
-                        handle == null
-                    ) {
+                            lock.lock()
+
+                            try {
+
+                                val handle =
+                                    expressionHandles[layer.id]
+
+                                if (
+                                    handle == null
+                                ) {
+                                    null
+                                } else {
+
+                                    graphEngine.generateGraph(
+                                        expressionHandle =
+                                            handle,
+                                        xMin = xMin,
+                                        xMax = xMax,
+                                        sampleCount =
+                                            sampleCount
+                                    )
+                                }
+
+                            } finally {
+                                lock.unlock()
+                            }
+                        }
+
+                    if (graph == null) {
                         layer
                     } else {
-
-                        val graph =
-                            graphEngine.generateGraph(
-                                expressionHandle =
-                                    handle,
-                                xMin = xMin,
-                                xMax = xMax,
-                                sampleCount =
-                                    sampleCount
-                            )
 
                         listenController.setGraphData(
                             id =
@@ -1222,7 +1262,7 @@ class VisualizationViewModel(
 
             if (
                 generation ==
-                samplingGeneration
+                samplingGeneration.get()
             ) {
 
                 _uiState.update {
@@ -1247,22 +1287,29 @@ class VisualizationViewModel(
 
     override fun onCleared() {
 
-        samplingGeneration +=
-            1L
+        samplingGeneration.incrementAndGet()
 
         viewportController.clear()
 
         listenController.release()
 
-        expressionHandles.values.forEach {
-                handle ->
+        nativeLock.writeLock().lock()
 
-            nativeBridge.destroyExpression(
-                handle
-            )
+        try {
+
+            expressionHandles.values.forEach {
+                    handle ->
+
+                nativeBridge.destroyExpression(
+                    handle
+                )
+            }
+
+            expressionHandles.clear()
+
+        } finally {
+            nativeLock.writeLock().unlock()
         }
-
-        expressionHandles.clear()
 
         super.onCleared()
     }
