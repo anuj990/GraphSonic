@@ -297,17 +297,27 @@ std::vector<double> GraphSampler::sample(
                 !defined[i] ||
                         !defined[i + 1]
                 ) {
-            addPoint(
-                    x1,
-                    ys[i],
-                    points
-            );
+            if (defined[i]) {
+                addPoint(
+                        x1,
+                        ys[i],
+                        points
+                );
+            }
 
             addPoint(
                     std::numeric_limits<double>::quiet_NaN(),
                     std::numeric_limits<double>::quiet_NaN(),
                     points
             );
+
+            if (defined[i + 1]) {
+                addPoint(
+                        x2,
+                        ys[i + 1],
+                        points
+                );
+            }
 
             continue;
         }
@@ -432,6 +442,12 @@ void GraphSampler::sampleInterval(
         addPoint(
                 std::numeric_limits<double>::quiet_NaN(),
                 std::numeric_limits<double>::quiet_NaN(),
+                points
+        );
+
+        addPoint(
+                x2,
+                y2,
                 points
         );
 
