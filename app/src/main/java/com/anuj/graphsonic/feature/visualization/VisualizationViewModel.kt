@@ -912,15 +912,23 @@ class VisualizationViewModel(
         x: Double
     ): Double {
 
-        val handle =
-            expressionHandles[id]
-                ?: return Double.NaN
+        nativeLock.readLock().lock()
 
-        return graphEngine.evaluate(
-            expressionHandle =
-                handle,
-            x = x
-        )
+        try {
+
+            val handle =
+                expressionHandles[id]
+                    ?: return Double.NaN
+
+            return graphEngine.evaluate(
+                expressionHandle =
+                    handle,
+                x = x
+            )
+
+        } finally {
+            nativeLock.readLock().unlock()
+        }
     }
 
     fun evaluateAt(
@@ -1084,10 +1092,18 @@ class VisualizationViewModel(
 
     fun startListening() {
 
-        if (
-            expressionHandles.isEmpty()
-        ) {
-            return
+        nativeLock.readLock().lock()
+
+        try {
+
+            if (
+                expressionHandles.isEmpty()
+            ) {
+                return
+            }
+
+        } finally {
+            nativeLock.readLock().unlock()
         }
 
         listenController.start()
