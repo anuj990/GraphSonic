@@ -1,5 +1,10 @@
 package com.anuj.graphsonic.feature.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -21,53 +26,31 @@ fun AppNavigation(
     navController: NavHostController,
     viewModel: VisualizationViewModel
 ) {
-    val backStackEntry by
-    navController.currentBackStackEntryAsState()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
 
-    val currentRoute =
-        backStackEntry?.destination?.route
-
-    val volume by
-    viewModel.volume.collectAsState()
-
-    val frequencyMode by
-    viewModel.frequencyMode.collectAsState()
-
-    val playbackSpeed by
-    viewModel.playbackSpeed.collectAsState()
-
-    val listenState by
-    viewModel.listenState.collectAsState()
-
-    val waveform by
-    viewModel.waveform.collectAsState()
-
-    val uiState by
-    viewModel.uiState.collectAsState()
-
-    val history by
-    viewModel.history.collectAsState()
-
-    val cursor by
-    viewModel.cursor.collectAsState()
+    val volume by viewModel.volume.collectAsState()
+    val frequencyMode by viewModel.frequencyMode.collectAsState()
+    val playbackSpeed by viewModel.playbackSpeed.collectAsState()
+    val listenState by viewModel.listenState.collectAsState()
+    val waveform by viewModel.waveform.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val history by viewModel.history.collectAsState()
+    val cursor by viewModel.cursor.collectAsState()
 
     Scaffold(
         bottomBar = {
             AppBottomBar(
                 currentRoute = currentRoute,
                 onDestinationSelected = { destination ->
-
                     if (currentRoute != destination.route) {
-                        val popped =
-                            navController.popBackStack(
-                                destination.route,
-                                false
-                            )
+                        val popped = navController.popBackStack(
+                            destination.route,
+                            false
+                        )
 
                         if (!popped) {
-                            navController.navigate(
-                                destination.route
-                            ) {
+                            navController.navigate(destination.route) {
                                 launchSingleTop = true
                             }
                         }
@@ -76,76 +59,96 @@ fun AppNavigation(
             )
         }
     ) { innerPadding ->
-
         NavHost(
-            navController =
-                navController,
-            startDestination =
-                AppDestination.Equation.route,
-            modifier =
-                Modifier.padding(
-                    innerPadding
+            navController = navController,
+            startDestination = AppDestination.Equation.route,
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                ) + slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
                 )
+            },
+            exitTransition = {
+                fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                ) + slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                )
+            },
+            popEnterTransition = {
+                fadeIn(
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                ) + slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                )
+            },
+            popExitTransition = {
+                fadeOut(
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                ) + slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                    animationSpec = tween(
+                        durationMillis = 400,
+                        easing = FastOutSlowInEasing
+                    )
+                )
+            }
         ) {
-
-            composable(
-                route =
-                    AppDestination.Equation.route
-            ) {
-
+            composable(route = AppDestination.Equation.route) {
                 EquationScreen(
                     onGraph = { equation ->
-
-                        val success =
-                            viewModel.loadExpression(
-                                equation
-                            )
-
+                        val success = viewModel.loadExpression(equation)
                         if (success) {
-                            navController.navigate(
-                                AppDestination.Visualization.route
-                            ) {
+                            navController.navigate(AppDestination.Visualization.route) {
                                 launchSingleTop = true
                             }
                         }
-
                         success
                     },
                     onValidate = { expression ->
-                        viewModel.validateExpression(
-                            expression
-                        )
+                        viewModel.validateExpression(expression)
                     },
                     onHistory = {
-                        navController.navigate(
-                            AppDestination.History.route
-                        ) {
+                        navController.navigate(AppDestination.History.route) {
                             launchSingleTop = true
                         }
-                    }   ,
-                    
+                    }
                 )
             }
 
-            composable(
-                route =
-                    AppDestination.History.route
-            ) {
-
+            composable(route = AppDestination.History.route) {
                 HistoryScreen(
-                    history =
-                        history,
+                    history = history,
                     onEquationSelected = { expression ->
-
-                        val success =
-                            viewModel.loadExpression(
-                                expression
-                            )
-
+                        val success = viewModel.loadExpression(expression)
                         if (success) {
-                            navController.navigate(
-                                AppDestination.Visualization.route
-                            ) {
+                            navController.navigate(AppDestination.Visualization.route) {
                                 launchSingleTop = true
                             }
                         }
@@ -153,64 +156,34 @@ fun AppNavigation(
                 )
             }
 
-            composable(
-                route =
-                    AppDestination.Visualization.route
-            ) {
-
+            composable(route = AppDestination.Visualization.route) {
                 VisualizationScreen(
-                    graphLayers =
-                        uiState.graphLayers,
-                    cursor =
-                        cursor,
-                    listenState =
-                        listenState,
-                    onCursorChanged =
-                        viewModel::updateCursor,
+                    graphLayers = uiState.graphLayers,
+                    cursor = cursor,
+                    listenState = listenState,
+                    onCursorChanged = viewModel::updateCursor,
                     evaluateAt = { id, x ->
-                        viewModel.evaluateAt(
-                            id,
-                            x
-                        )
+                        viewModel.evaluateAt(id, x)
                     },
-                    onViewportChanged =
-                        viewModel::onViewportChanged,
-                    onStartListening =
-                        viewModel::startListening,
-                    onStopListening =
-                        viewModel::stopListening,
-                    onAddExpression =
-                        viewModel::addExpression,
-                    history =
-                        history,
-                    onExpressionEnabledChanged =
-                        viewModel::setExpressionEnabled,
-                    onExpressionAudioEnabledChanged =
-                        viewModel::setExpressionAudioEnabled,
-                    onRemoveExpression =
-                        viewModel::removeExpression,
+                    onViewportChanged = viewModel::onViewportChanged,
+                    onStartListening = viewModel::startListening,
+                    onStopListening = viewModel::stopListening,
+                    onAddExpression = viewModel::addExpression,
+                    history = history,
+                    onExpressionEnabledChanged = viewModel::setExpressionEnabled,
+                    onExpressionAudioEnabledChanged = viewModel::setExpressionAudioEnabled,
+                    onRemoveExpression = viewModel::removeExpression,
                     onEditExpression = { id, expression ->
-                        viewModel.editExpression(
-                            id,
-                            expression
-                        )
+                        viewModel.editExpression(id, expression)
                     },
-                    frequencyMode =
-                        frequencyMode,
-                    volume =
-                        volume,
-                    onVolumeChanged =
-                        viewModel::setVolume,
-                    playbackSpeed =
-                        playbackSpeed,
-                    onFrequencyModeChanged =
-                        viewModel::setFrequencyMode,
-                    waveform =
-                        waveform,
-                    onWaveformChanged =
-                        viewModel::setWaveform,
-                    onPlaybackSpeedChanged =
-                        viewModel::setPlaybackSpeed
+                    frequencyMode = frequencyMode,
+                    volume = volume,
+                    onVolumeChanged = viewModel::setVolume,
+                    playbackSpeed = playbackSpeed,
+                    onFrequencyModeChanged = viewModel::setFrequencyMode,
+                    waveform = waveform,
+                    onWaveformChanged = viewModel::setWaveform,
+                    onPlaybackSpeedChanged = viewModel::setPlaybackSpeed
                 )
             }
         }

@@ -1,12 +1,15 @@
 package com.anuj.graphsonic.feature.equation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +28,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -39,10 +43,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+
+private val EQUATION_EXAMPLES = listOf(
+    "sin(x)",
+    "x²",
+    "√(x)",
+    "x³",
+    "log(x)"
+)
 
 @Composable
 fun EquationScreen(
@@ -51,46 +63,25 @@ fun EquationScreen(
     onHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var equation by remember {
-        mutableStateOf("")
-    }
-
-    var errorMessage by remember {
-        mutableStateOf<String?>(null)
-    }
-
-    val examples = remember {
-        listOf(
-            "sin(x)",
-            "x²",
-            "√(x)",
-            "x³",
-            "log(x)"
-        )
-    }
+    var equation by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     fun graphEquation() {
-
-        val expression =
-            equation.trim()
+        val expression = equation.trim()
 
         if (expression.isEmpty()) {
-            errorMessage =
-                "Enter an equation"
+            errorMessage = "Enter an equation"
             return
         }
 
-        val validationError =
-            onValidate(expression)
+        val validationError = onValidate(expression)
 
         if (validationError != null) {
-            errorMessage =
-                validationError
+            errorMessage = validationError
             return
         }
 
-        val success =
-            onGraph(expression)
+        val success = onGraph(expression)
 
         if (success) {
             errorMessage = null
@@ -98,104 +89,72 @@ fun EquationScreen(
     }
 
     Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(
-                    horizontal = 24.dp,
-                    vertical = 32.dp
-                ),
-        verticalArrangement =
-            Arrangement.Center
+        modifier = modifier
+            .fillMaxSize()
+            .padding(
+                horizontal = 24.dp,
+                vertical = 32.dp
+            ),
+        verticalArrangement = Arrangement.Center
     ) {
         Column(
-            modifier =
-                Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = "GraphSonic",
-                style =
-                    MaterialTheme.typography.displaySmall,
-                fontWeight =
-                    FontWeight.Bold,
-                color =
-                    MaterialTheme.colorScheme.onBackground
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
             )
 
-            Spacer(
-                modifier =
-                    Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text =
-                    "Turn mathematical expressions into graphs and sound.",
-                style =
-                    MaterialTheme.typography.bodyLarge,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Turn mathematical expressions into graphs and sound.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(32.dp)
-        )
+        Spacer(modifier = Modifier.height(32.dp))
 
         Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(
-                        animationSpec =
-                            spring(
-                                dampingRatio = 0.85f,
-                                stiffness =
-                                    Spring.StiffnessMediumLow
-                            )
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = 0.85f,
+                        stiffness = Spring.StiffnessMediumLow
                     )
+                )
         ) {
             Text(
-                text =
-                    "Enter an equation",
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight =
-                    FontWeight.SemiBold,
-                color =
-                    MaterialTheme.colorScheme.onBackground
+                text = "Enter an equation",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
             )
 
-            Spacer(
-                modifier =
-                    Modifier.height(10.dp)
-            )
+            Spacer(modifier = Modifier.height(10.dp))
 
             OutlinedTextField(
                 value = equation,
                 onValueChange = { value ->
-
-                    equation =
-                        value
-
-                    errorMessage =
-                        onValidate(value)
+                    equation = value
+                    errorMessage = onValidate(value)
                 },
-                modifier =
-                    Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = {
-                    Text(
-                        text =
-                            "e.g. sin(x), x², √(x)"
-                    )
+                    Text(text = "e.g. sin(x), x², √(x)")
                 },
-                isError =
-                    errorMessage != null,
+                isError = errorMessage != null,
                 trailingIcon = {
-
-                    if (equation.isNotEmpty()) {
-
+                    AnimatedVisibility(
+                        visible = equation.isNotEmpty(),
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
                         IconButton(
                             onClick = {
                                 equation = ""
@@ -203,196 +162,140 @@ fun EquationScreen(
                             }
                         ) {
                             Icon(
-                                imageVector =
-                                    Icons.Default.Clear,
-                                contentDescription =
-                                    "Clear equation"
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear equation"
                             )
                         }
                     }
                 },
-                keyboardOptions =
-                    KeyboardOptions(
-                        imeAction =
-                            ImeAction.Done
-                    ),
-                keyboardActions =
-                    KeyboardActions(
-                        onDone = {
-                            graphEquation()
-                        }
-                    ),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        graphEquation()
+                    }
+                ),
                 supportingText = {
-
                     AnimatedVisibility(
-                        visible =
-                            errorMessage != null,
+                        visible = errorMessage != null,
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
                         Text(
-                            text =
-                                errorMessage.orEmpty(),
-                            color =
-                                MaterialTheme.colorScheme.error
+                            text = errorMessage.orEmpty(),
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
             )
 
-            Spacer(
-                modifier =
-                    Modifier.height(12.dp)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text =
-                    "Try an expression",
-                style =
-                    MaterialTheme.typography.labelLarge,
-                fontWeight =
-                    FontWeight.Medium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Try an expression",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(
-                modifier =
-                    Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(
-                            rememberScrollState()
-                        ),
-                horizontalArrangement =
-                    Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                examples.forEach { example ->
+                EQUATION_EXAMPLES.forEach { example ->
+                    val selected = equation == example
 
-                    val selected =
-                        equation == example
+                    val scale by animateFloatAsState(
+                        targetValue = if (selected) 1.05f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = 0.6f,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        label = "exampleScale"
+                    )
 
-                    val scale by
-                    animateFloatAsState(
-                        targetValue =
-                            if (selected) {
-                                1.04f
-                            } else {
-                                1f
-                            },
-                        animationSpec =
-                            spring(
-                                dampingRatio =
-                                    0.75f,
-                                stiffness =
-                                    Spring.StiffnessMedium
-                            ),
-                        label =
-                            "exampleScale"
+                    val containerColor by animateColorAsState(
+                        targetValue = if (selected) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        label = "exampleColor"
                     )
 
                     AssistChip(
                         onClick = {
-                            equation =
-                                example
-
-                            errorMessage =
-                                onValidate(
-                                    example
-                                )
+                            equation = example
+                            errorMessage = onValidate(example)
                         },
                         label = {
-                            Text(
-                                text =
-                                    example
-                            )
+                            Text(text = example)
                         },
-                        modifier =
-                            Modifier.scale(scale)
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = containerColor
+                        ),
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
                     )
                 }
             }
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(24.dp)
-        )
+        Spacer(modifier = Modifier.height(24.dp))
 
         Button(
             onClick = {
                 graphEquation()
             },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-            shape =
-                MaterialTheme.shapes.large,
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor =
-                        MaterialTheme.colorScheme.primary,
-                    contentColor =
-                        MaterialTheme.colorScheme.onPrimary
-                )
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = MaterialTheme.shapes.large,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         ) {
             Icon(
-                imageVector =
-                    Icons.Default.ShowChart,
+                imageVector = Icons.Default.ShowChart,
                 contentDescription = null
             )
 
-            Spacer(
-                modifier =
-                    Modifier.width(10.dp)
-            )
+            Spacer(modifier = Modifier.width(10.dp))
 
             Text(
-                text =
-                    "Graph Equation",
-                style =
-                    MaterialTheme.typography.labelLarge,
-                fontWeight =
-                    FontWeight.Bold
+                text = "Graph Equation",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        Spacer(
-            modifier =
-                Modifier.height(12.dp)
-        )
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedButton(
-            onClick =
-                onHistory,
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-            shape =
-                MaterialTheme.shapes.large
+            onClick = onHistory,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = MaterialTheme.shapes.large
         ) {
             Icon(
-                imageVector =
-                    Icons.Default.History,
+                imageVector = Icons.Default.History,
                 contentDescription = null
             )
 
-            Spacer(
-                modifier =
-                    Modifier.width(10.dp)
-            )
+            Spacer(modifier = Modifier.width(10.dp))
 
             Text(
-                text =
-                    "Browse History",
-                style =
-                    MaterialTheme.typography.labelLarge
+                text = "Browse History",
+                style = MaterialTheme.typography.labelLarge
             )
         }
     }

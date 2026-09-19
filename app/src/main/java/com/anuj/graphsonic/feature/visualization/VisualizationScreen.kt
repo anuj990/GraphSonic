@@ -1,9 +1,22 @@
 package com.anuj.graphsonic.feature.visualization
 
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,8 +26,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -25,12 +40,12 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,10 +55,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.anuj.graphsonic.feature.audio.FrequencyMode
@@ -80,49 +99,18 @@ fun VisualizationScreen(
     onWaveformChanged: (Waveform) -> Unit,
     onPlaybackSpeedChanged: (Double) -> Unit
 ) {
-    var controlsExpanded by rememberSaveable {
-        mutableStateOf(false)
-    }
+    var controlsExpanded by rememberSaveable { mutableStateOf(false) }
+    var addDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var addMethodDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var historyDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var newExpression by rememberSaveable { mutableStateOf("") }
+    var addError by rememberSaveable { mutableStateOf<String?>(null) }
+    var editDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var editingExpressionId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var editingExpression by rememberSaveable { mutableStateOf("") }
+    var editError by rememberSaveable { mutableStateOf<String?>(null) }
 
-    var addDialogVisible by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var addMethodDialogVisible by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var historyDialogVisible by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var newExpression by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var addError by rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
-
-    var editDialogVisible by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    var editingExpressionId by rememberSaveable {
-        mutableStateOf<Long?>(null)
-    }
-
-    var editingExpression by rememberSaveable {
-        mutableStateOf("")
-    }
-
-    var editError by rememberSaveable {
-        mutableStateOf<String?>(null)
-    }
-
-    Box(
-        modifier = modifier.fillMaxSize()
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
         GraphCanvas(
             graphLayers = graphLayers,
             cursor = cursor,
@@ -133,14 +121,7 @@ fun VisualizationScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        CursorInfoCard(
-            cursor = cursor,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 132.dp)
-        )
-
-        EquationOverlay(
+        EquationFloatingDock(
             graphLayers = graphLayers,
             onAdd = {
                 if (graphLayers.size < 8) {
@@ -158,21 +139,27 @@ fun VisualizationScreen(
             onRemove = onRemoveExpression,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 12.dp,
-                    vertical = 12.dp
-                )
+                .padding(top = 16.dp)
+        )
+
+        CursorInfoCard(
+            cursor = cursor,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 120.dp)
+                .animateContentSize()
         )
 
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    bottom = 12.dp
+                .padding(16.dp)
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -180,7 +167,7 @@ fun VisualizationScreen(
                 listenState = listenState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = 12.dp)
             )
 
             ListenPanel(
@@ -190,9 +177,7 @@ fun VisualizationScreen(
                 volume = volume,
                 waveform = waveform,
                 expanded = controlsExpanded,
-                onExpandedChanged = {
-                    controlsExpanded = it
-                },
+                onExpandedChanged = { controlsExpanded = it },
                 onStart = onStartListening,
                 onStop = onStopListening,
                 onFrequencyModeChanged = onFrequencyModeChanged,
@@ -205,9 +190,7 @@ fun VisualizationScreen(
 
     if (addMethodDialogVisible) {
         AlertDialog(
-            onDismissRequest = {
-                addMethodDialogVisible = false
-            },
+            onDismissRequest = { addMethodDialogVisible = false },
             title = {
                 Text(
                     text = "Add equation",
@@ -217,7 +200,8 @@ fun VisualizationScreen(
             },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.animateContentSize()
                 ) {
                     Button(
                         onClick = {
@@ -226,18 +210,14 @@ fun VisualizationScreen(
                             addError = null
                             addDialogVisible = true
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null
-                        )
-
-                        Spacer(
-                            modifier = Modifier.width(8.dp)
-                        )
-
-                        Text("Enter manually")
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Enter manually", fontWeight = FontWeight.SemiBold)
                     }
 
                     OutlinedButton(
@@ -245,73 +225,75 @@ fun VisualizationScreen(
                             addMethodDialogVisible = false
                             historyDialogVisible = true
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null
-                        )
-
-                        Spacer(
-                            modifier = Modifier.width(8.dp)
-                        )
-
-                        Text("From history")
+                        Icon(imageVector = Icons.Default.History, contentDescription = null)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text("Choose from history", fontWeight = FontWeight.SemiBold)
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        addMethodDialogVisible = false
-                    }
-                ) {
+                TextButton(onClick = { addMethodDialogVisible = false }) {
                     Text("Cancel")
                 }
-            }
+            },
+            shape = RoundedCornerShape(28.dp)
         )
     }
 
     if (historyDialogVisible) {
         AlertDialog(
-            onDismissRequest = {
-                historyDialogVisible = false
-            },
+            onDismissRequest = { historyDialogVisible = false },
             title = {
                 Text(
-                    text = "Choose from history",
+                    text = "History",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 if (history.isEmpty()) {
-                    Text(
-                        text = "No equation history yet",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No history available",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 } else {
-                    LazyColumn {
-                        items(
-                            items = history,
-                            key = { it }
-                        ) { expression ->
-                            TextButton(
+                    LazyColumn(
+                        modifier = Modifier.animateContentSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(items = history, key = { it }) { expression ->
+                            Card(
                                 onClick = {
-                                    val success =
-                                        onAddExpression(expression)
-
-                                    if (success) {
+                                    if (onAddExpression(expression)) {
                                         historyDialogVisible = false
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth()
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem()
                             ) {
                                 Text(
                                     text = expression,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
@@ -320,31 +302,26 @@ fun VisualizationScreen(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        historyDialogVisible = false
-                    }
-                ) {
+                TextButton(onClick = { historyDialogVisible = false }) {
                     Text("Cancel")
                 }
-            }
+            },
+            shape = RoundedCornerShape(28.dp)
         )
     }
 
     if (addDialogVisible) {
         AlertDialog(
-            onDismissRequest = {
-                addDialogVisible = false
-            },
+            onDismissRequest = { addDialogVisible = false },
             title = {
                 Text(
-                    text = "Add equation",
+                    text = "New equation",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
-                Column {
+                Column(modifier = Modifier.animateContentSize()) {
                     OutlinedTextField(
                         value = newExpression,
                         onValueChange = {
@@ -353,34 +330,34 @@ fun VisualizationScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = {
-                            Text("Enter equation")
-                        },
+                        placeholder = { Text("e.g. sin(x)") },
                         isError = addError != null,
-                        supportingText = {
-                            addError?.let {
-                                Text(
-                                    text = it,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
+                        shape = RoundedCornerShape(16.dp)
                     )
+
+                    AnimatedVisibility(
+                        visible = addError != null,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
+                        Text(
+                            text = addError.orEmpty(),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp, start = 16.dp)
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         val expression = newExpression.trim()
-
                         if (expression.isEmpty()) {
                             addError = "Enter an equation"
                             return@Button
                         }
-
-                        val success = onAddExpression(expression)
-
-                        if (success) {
+                        if (onAddExpression(expression)) {
                             addDialogVisible = false
                             newExpression = ""
                         } else {
@@ -392,22 +369,17 @@ fun VisualizationScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        addDialogVisible = false
-                    }
-                ) {
+                TextButton(onClick = { addDialogVisible = false }) {
                     Text("Cancel")
                 }
-            }
+            },
+            shape = RoundedCornerShape(28.dp)
         )
     }
 
     if (editDialogVisible) {
         AlertDialog(
-            onDismissRequest = {
-                editDialogVisible = false
-            },
+            onDismissRequest = { editDialogVisible = false },
             title = {
                 Text(
                     text = "Edit equation",
@@ -416,38 +388,37 @@ fun VisualizationScreen(
                 )
             },
             text = {
-                OutlinedTextField(
-                    value = editingExpression,
-                    onValueChange = {
-                        editingExpression = it
-                        editError = null
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = {
-                        Text("Enter equation")
-                    },
-                    isError = editError != null,
-                    supportingText = {
-                        editError?.let {
-                            Text(
-                                text = it,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
+                Column(modifier = Modifier.animateContentSize()) {
+                    OutlinedTextField(
+                        value = editingExpression,
+                        onValueChange = {
+                            editingExpression = it
+                            editError = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        isError = editError != null
+                    )
+
+                    AnimatedVisibility(
+                        visible = editError != null,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
+                        Text(
+                            text = editError.orEmpty(),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp, start = 16.dp)
+                        )
                     }
-                )
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val id = editingExpressionId
-
-                        if (id == null) {
-                            editError = "Equation not found"
-                            return@Button
-                        }
-
+                        val id = editingExpressionId ?: return@Button
                         val expression = editingExpression.trim()
 
                         if (expression.isEmpty()) {
@@ -455,11 +426,7 @@ fun VisualizationScreen(
                             return@Button
                         }
 
-                        val error = onEditExpression(
-                            id,
-                            expression
-                        )
-
+                        val error = onEditExpression(id, expression)
                         if (error == null) {
                             editDialogVisible = false
                             editingExpressionId = null
@@ -473,20 +440,17 @@ fun VisualizationScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(
-                    onClick = {
-                        editDialogVisible = false
-                    }
-                ) {
+                TextButton(onClick = { editDialogVisible = false }) {
                     Text("Cancel")
                 }
-            }
+            },
+            shape = RoundedCornerShape(28.dp)
         )
     }
 }
 
 @Composable
-private fun EquationOverlay(
+private fun EquationFloatingDock(
     graphLayers: List<GraphLayer>,
     onAdd: () -> Unit,
     onEnabledChanged: (Long, Boolean) -> Unit,
@@ -495,88 +459,44 @@ private fun EquationOverlay(
     onRemove: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ElevatedCard(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.elevatedCardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surfaceContainerHigh
-        )
+    Surface(
+        modifier = modifier
+            .fillMaxWidth(0.95f)
+            .animateContentSize(),
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
+        tonalElevation = 6.dp,
+        shadowElevation = 8.dp
     ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 10.dp
-            )
+        LazyRow(
+            modifier = Modifier.padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            contentPadding = PaddingValues(horizontal = 4.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "Equations",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "${graphLayers.size}/8",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                AssistChip(
+            item {
+                FilledIconButton(
                     onClick = onAdd,
                     enabled = graphLayers.size < 8,
-                    label = {
-                        Text("Add")
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null
-                        )
-                    }
-                )
+                    modifier = Modifier.size(56.dp),
+                    shape = CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add equation")
+                }
             }
 
-            if (graphLayers.isNotEmpty()) {
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(
-                            rememberScrollState()
-                        ),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(8.dp)
-                ) {
-                    graphLayers.forEach { layer ->
-                        EquationChip(
-                            layer = layer,
-                            onEnabledChanged = onEnabledChanged,
-                            onAudioEnabledChanged = onAudioEnabledChanged,
-                            onEdit = onEdit,
-                            onRemove = onRemove
-                        )
-                    }
-                }
-            } else {
-                Text(
-                    text = "Add an equation to start graphing.",
-                    modifier = Modifier.padding(
-                        top = 8.dp,
-                        bottom = 2.dp
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            items(items = graphLayers, key = { it.id }) { layer ->
+                EquationChip(
+                    layer = layer,
+                    onEnabledChanged = onEnabledChanged,
+                    onAudioEnabledChanged = onAudioEnabledChanged,
+                    onEdit = onEdit,
+                    onRemove = onRemove,
+                    modifier = Modifier.animateItem()
                 )
             }
         }
@@ -589,132 +509,126 @@ private fun EquationChip(
     onEnabledChanged: (Long, Boolean) -> Unit,
     onAudioEnabledChanged: (Long, Boolean) -> Unit,
     onEdit: (GraphLayer) -> Unit,
-    onRemove: (Long) -> Unit
+    onRemove: (Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface,
+        modifier = modifier.height(56.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(
-                start = 10.dp,
-                end = 4.dp
-            )
+            modifier = Modifier.padding(start = 16.dp, end = 6.dp)
         ) {
-            Surface(
-                modifier = Modifier.size(10.dp),
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = graphLayerColor(layer.colorIndex)
-            ) {}
-
-            Spacer(
-                modifier = Modifier.width(8.dp)
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(graphLayerColor(layer.colorIndex))
             )
 
             Text(
                 text = layer.expression,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
-            IconButton(
-                onClick = {
-                    onEnabledChanged(
-                        layer.id,
-                        !layer.enabled
-                    )
-                }
-            ) {
-                Icon(
-                    imageVector =
-                        if (layer.enabled) {
-                            Icons.Default.Visibility
-                        } else {
-                            Icons.Default.VisibilityOff
-                        },
-                    contentDescription =
-                        if (layer.enabled) {
-                            "Hide graph"
-                        } else {
-                            "Show graph"
-                        },
-                    tint =
-                        if (layer.enabled) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                )
-            }
+            AnimatedTactileIcon(
+                active = layer.enabled,
+                activeIcon = Icons.Default.Visibility,
+                inactiveIcon = Icons.Default.VisibilityOff,
+                activeColor = MaterialTheme.colorScheme.primary,
+                inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { onEnabledChanged(layer.id, !layer.enabled) }
+            )
 
-            IconButton(
-                onClick = {
-                    onAudioEnabledChanged(
-                        layer.id,
-                        !layer.audioEnabled
-                    )
-                }
-            ) {
-                Icon(
-                    imageVector =
-                        if (layer.audioEnabled) {
-                            Icons.Default.VolumeUp
-                        } else {
-                            Icons.Default.VolumeOff
-                        },
-                    contentDescription =
-                        if (layer.audioEnabled) {
-                            "Mute audio"
-                        } else {
-                            "Enable audio"
-                        },
-                    tint =
-                        if (layer.audioEnabled) {
-                            MaterialTheme.colorScheme.secondary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                )
-            }
+            AnimatedTactileIcon(
+                active = layer.audioEnabled,
+                activeIcon = Icons.Default.VolumeUp,
+                inactiveIcon = Icons.Default.VolumeOff,
+                activeColor = MaterialTheme.colorScheme.secondary,
+                inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { onAudioEnabledChanged(layer.id, !layer.audioEnabled) }
+            )
 
-            IconButton(
-                onClick = {
-                    onEdit(layer)
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit equation"
-                )
-            }
+            AnimatedTactileIcon(
+                active = false,
+                activeIcon = Icons.Default.Edit,
+                inactiveIcon = Icons.Default.Edit,
+                activeColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = { onEdit(layer) }
+            )
 
-            IconButton(
-                onClick = {
-                    onRemove(layer.id)
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = "Remove equation"
-                )
-            }
+            AnimatedTactileIcon(
+                active = false,
+                activeIcon = Icons.Default.DeleteOutline,
+                inactiveIcon = Icons.Default.DeleteOutline,
+                activeColor = MaterialTheme.colorScheme.error,
+                inactiveColor = MaterialTheme.colorScheme.error,
+                onClick = { onRemove(layer.id) }
+            )
         }
     }
 }
 
-private fun graphLayerColor(
-    index: Int
-): androidx.compose.ui.graphics.Color {
+@Composable
+private fun AnimatedTactileIcon(
+    active: Boolean,
+    activeIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    inactiveIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    activeColor: Color,
+    inactiveColor: Color,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.8f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "iconScale"
+    )
+
+    val tint by animateColorAsState(
+        targetValue = if (active) activeColor else inactiveColor,
+        label = "iconColor"
+    )
+
+    Surface(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        shape = CircleShape,
+        color = Color.Transparent,
+        modifier = Modifier
+            .size(40.dp)
+            .scale(scale)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (active) activeIcon else inactiveIcon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+private fun graphLayerColor(index: Int): Color {
     return when (index % 8) {
-        0 -> androidx.compose.ui.graphics.Color(0xFF4F7CFF)
-        1 -> androidx.compose.ui.graphics.Color(0xFFFF5C7A)
-        2 -> androidx.compose.ui.graphics.Color(0xFF43B581)
-        3 -> androidx.compose.ui.graphics.Color(0xFFB26CFF)
-        4 -> androidx.compose.ui.graphics.Color(0xFFFFA63D)
-        5 -> androidx.compose.ui.graphics.Color(0xFF35C2C9)
-        6 -> androidx.compose.ui.graphics.Color(0xFF9A7B62)
-        else -> androidx.compose.ui.graphics.Color(0xFFE45B9A)
+        0 -> Color(0xFF4F7CFF)
+        1 -> Color(0xFFFF5C7A)
+        2 -> Color(0xFF43B581)
+        3 -> Color(0xFFB26CFF)
+        4 -> Color(0xFFFFA63D)
+        5 -> Color(0xFF35C2C9)
+        6 -> Color(0xFF9A7B62)
+        else -> Color(0xFFE45B9A)
     }
 }
