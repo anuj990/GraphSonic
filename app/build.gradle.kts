@@ -20,8 +20,18 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../graphsonic-release.jks")
+            storePassword = System.getenv("GRAPHSONIC_KEYSTORE_PASSWORD")
+            keyAlias = "graphsonic"
+            keyPassword = System.getenv("GRAPHSONIC_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             optimization {
                 enable = false
             }

@@ -43,6 +43,7 @@ class ListenController(
     val state: StateFlow<ListenState> =
         _state.asStateFlow()
 
+
     @Volatile
     private var frequencyMode =
         FrequencyMode.Continuous
@@ -67,6 +68,7 @@ class ListenController(
     private var step =
         0.01
 
+    private val axisVolumeScale = 2.0
     private var playbackJob: Job? =
         null
 
@@ -326,7 +328,10 @@ class ListenController(
                                 volume =
                                     voiceVolume(
                                         activeEquations.size
-                                    )
+                                    ) *
+                                            axisDistanceVolume(
+                                                y
+                                            )
                             )
 
                             states +=
@@ -433,6 +438,31 @@ class ListenController(
     ): Double {
         return 1.0
     }
+    private fun axisDistanceVolume(
+        y: Double
+    ): Double {
+        if (!y.isFinite()) {
+            return 0.0
+        }
+
+        val distance =
+            kotlin.math.abs(y)
+
+        val normalized =
+            distance /
+                    (
+                            distance +
+                                    axisVolumeScale
+                            )
+
+        return (
+                0.03 +
+                        0.97 * normalized
+                ).coerceIn(
+                0.03,
+                1.0
+            )
+    }   
 
     @Synchronized
     private fun voiceIndex(
