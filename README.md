@@ -52,6 +52,13 @@ Most graphing apps only show you a curve. GraphSonic lets you **hear** it: pitch
 |:---:|:---:|:---:|:---:|:---:|
 | <img src="https://github.com/user-attachments/assets/48191945-0b95-4a8f-8ec7-a183b55594f0" width="170" alt="Equation input"/> | <img src="https://github.com/user-attachments/assets/9c11d5dd-6a68-4685-ac8f-a1ed953f75cd" width="170" alt="Multi-graph"/> | <img src="https://github.com/user-attachments/assets/4147710d-6a42-46bb-a1ed-e8e86d582fe7" width="170" alt="Listen mode"/> | <img src="https://github.com/user-attachments/assets/d6ed679b-a762-412c-9332-45532b7f781b" width="170" alt="History"/> | <img src="https://github.com/user-attachments/assets/009e7245-c457-4475-96c6-e014e27c0752" width="170" alt="Trace cursor"/> |
 
+---
+<a href="https://youtube.com/shorts/uxznS3PxTew">
+  <img src="https://img.youtube.com/vi/uxznS3PxTew/hqdefault.jpg" width="280" alt="Watch the GraphSonic demo"/>
+</a>
+
+▶️ **[Watch the demo (turn the sound on)](https://youtube.com/shorts/uxznS3PxTew)**
+---
 ## Features
 
 **Graphing**
