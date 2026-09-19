@@ -1,7 +1,8 @@
 <div align="center">
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/3a8f196b-e9fb-494f-9390-b93f129848bb" alt="GraphSonic" width="400"/>
+</p>
 
-<!-- Replace with your logo: docs/logo.png (512x512, transparent) -->
-<img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="120" alt="GraphSonic logo"/>
 
 # GraphSonic
 
