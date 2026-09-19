@@ -160,16 +160,21 @@ Or build from the terminal:
 ./gradlew assembleDebug
 ```
 
-<!-- Add an APK once you publish a release -->
+## Download
+
 [![Download APK](https://img.shields.io/github/v/release/anuj990/GraphSonic?label=Download%20APK&style=for-the-badge&logo=android&color=3DDC84)](https://github.com/anuj990/GraphSonic/releases/latest)
+
+**Latest release:** [GraphSonic v1.0.0](https://github.com/anuj990/GraphSonic/releases/tag/v1.0.0)
+
+Download the APK from the GitHub Releases page and install it on an Android device running Android 8.0 (API 26) or newer.
 
 ## Roadmap
 
-- [ ] Custom math keyboard (no more typing `²` and `√` by hand)
-- [ ] Trace mode: drag to scrub and hear the pitch instantly
+- [ ] Custom math keyboard
+- [ ] Audio scrubbing: drag to control the playhead and hear the pitch instantly
 - [ ] TalkBack support: step through the graph and announce `x`, `y`, and note
 - [ ] Pitch mapped to the visible y-range instead of `|y|`
-- [ ] More functions: `floor`, `ceil`, `sign`, `|x|`, `log(x, base)`
+- [ ] More functions: `sign`, `|x|`
 - [ ] Export graph as PNG and sound as WAV
 - [ ] Tablet and landscape two-pane layout
 - [ ] Unit tests for the parser and sampler
