@@ -1,745 +1,222 @@
+<div align="center">
+
+<!-- Replace with your logo: docs/logo.png (512x512, transparent) -->
+<img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="120" alt="GraphSonic logo"/>
+
 # GraphSonic
 
-GraphSonic is an Android application for turning mathematical expressions into interactive graphs and sound.
+### See math. Hear math.
 
-It combines a Jetpack Compose Android UI with a native C++ mathematical engine. You can enter equations, graph multiple expressions together, inspect values with a cursor, pan and zoom the graph, and listen to the graph as audio.
+A graphing calculator for Android that **plots your equations and plays them as sound**.
+Powered by a hand-written **C++17 math engine** and a fully **Jetpack Compose** UI.
 
-> **Project status:** Active development. The repository currently contains the core graphing, mathematical parsing/evaluation, visualization, audio, history, and native JNI layers. Some performance and cleanup work remains on the development roadmap.
+<p>
+  <a href="https://github.com/anuj990/GraphSonic/stargazers"><img src="https://img.shields.io/github/stars/anuj990/GraphSonic?style=for-the-badge&logo=github&color=yellow" alt="Stars"/></a>
+  <a href="https://github.com/anuj990/GraphSonic/network/members"><img src="https://img.shields.io/github/forks/anuj990/GraphSonic?style=for-the-badge&logo=github&color=blue" alt="Forks"/></a>
+  <a href="https://github.com/anuj990/GraphSonic/issues"><img src="https://img.shields.io/github/issues/anuj990/GraphSonic?style=for-the-badge&color=red" alt="Issues"/></a>
+  <a href="https://github.com/anuj990/GraphSonic/pulls"><img src="https://img.shields.io/github/issues-pr/anuj990/GraphSonic?style=for-the-badge&color=orange" alt="Pull requests"/></a>
+</p>
 
-## What GraphSonic Does
+<p>
+  <img src="https://img.shields.io/badge/Kotlin-2.2-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin"/>
+  <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white" alt="C++17"/>
+  <img src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose"/>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white" alt="Android 8.0+"/>
+  <img src="https://img.shields.io/github/languages/top/anuj990/GraphSonic" alt="Top language"/>
+  <img src="https://img.shields.io/github/languages/code-size/anuj990/GraphSonic" alt="Code size"/>
+  <img src="https://img.shields.io/github/repo-size/anuj990/GraphSonic" alt="Repo size"/>
+  <img src="https://img.shields.io/github/last-commit/anuj990/GraphSonic" alt="Last commit"/>
+  <img src="https://img.shields.io/github/commit-activity/m/anuj990/GraphSonic" alt="Commit activity"/>
+</p>
 
-GraphSonic is designed around the idea that a mathematical function can be experienced in two ways:
+<!-- Replace with a 10-15 second screen recording: docs/demo.gif -->
+<img src="docs/demo.gif" width="280" alt="GraphSonic demo"/>
 
-1. **Visually** — sample the function and render it as an interactive graph.
-2. **Audibly** — map graph values to musical frequencies and play the result.
+**If GraphSonic made you smile, a ⭐ helps a lot!**
 
-The app currently supports up to **8 equations** at once. Each equation is represented as an independent graph layer with its own expression, color, visibility state, and audio-enabled state.
+</div>
 
-## Core Features
+---
 
-### Mathematical expression input
+## Why GraphSonic?
 
-The expression engine supports mathematical notation including:
+Most graphing apps only show you a curve. GraphSonic lets you **hear** it: pitch follows the value of `y` as a playhead sweeps along `x`. You notice peaks, zeros, jumps, and asymptotes with your ears, not just your eyes. It is a fun way to learn functions, and a useful one for anyone who cannot rely on sight alone.
 
-- Variables such as `x`
-- Numeric constants
-- Parentheses
-- Addition, subtraction, multiplication, division, and powers
-- Implicit multiplication such as `2x` and `xsin(x)`
-- Function notation such as `sin(x)`
-- Function-style input without parentheses where supported, such as `sin 2x`
-- Superscript powers such as `x²` and larger superscript exponents
-- Mathematical symbols including `π`, `√`, `∛`, `×`, `÷`, and `−`
-- Trigonometric functions
-- Inverse trigonometric aliases including `arcsin`, `arccos`, and `arctan`
-- Hyperbolic functions
-- Logarithms
-- Two-argument logarithms such as `log(x,2)`
-- Absolute value
-- Floor and ceiling
-- Exponential functions
-- Square roots and cube roots
-- Domain-aware evaluation
-- Negative-base fractional powers where the mathematical result is real, including examples such as `(-8)^(1/3)`
+## Screenshots
 
-The parser, evaluator, and canonical-expression system live in the native C++ layer.
+<!-- Put images in docs/screenshots/ and keep the file names below -->
+| Equation input | Multi-graph | Listen mode | History |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/equation.png" width="200"/> | <img src="docs/screenshots/multi-graph.png" width="200"/> | <img src="docs/screenshots/listen.png" width="200"/> | <img src="docs/screenshots/history.png" width="200"/> |
 
-### Live expression validation
+| Dark theme | Trace cursor | Asymptotes (`tan(x)`, `1/x`) |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/dark.png" width="200"/> | <img src="docs/screenshots/trace.png" width="200"/> | <img src="docs/screenshots/asymptotes.png" width="200"/> |
 
-The equation input validates expressions while they are being entered.
+## Features
 
-Incomplete expressions can remain temporarily valid while typing, while completed invalid expressions can surface the native parser error before graphing.
+**Graphing**
+- Up to **8 equations** at once, each with its own color, show/hide, and mute toggle
+- **Pinch to zoom, drag to pan**, with an adaptive grid and axis labels
+- **Long-press and drag** to trace: read `x` and `y` for every visible curve
+- Curves **re-sample when you stop moving**, so they stay smooth at any zoom
+- Smart handling of **asymptotes and undefined regions** (`tan(x)`, `1/x`, `√x`, `ln(x)`)
+- Duplicate detection: `x²` and `x^2` are recognized as the same equation
 
-For example, an expression such as:
+**Sonification (Listen mode)**
+- A playhead sweeps across the graph and turns `y` into pitch
+- **Continuous** or **Musical** mode (snaps to notes and shows the note name)
+- **4 waveforms:** sine, triangle, square, saw
+- Adjustable **speed** and **volume**
+- **Polyphonic:** every enabled equation plays as its own voice (up to 16 voices)
+- Live readout of `x`, `y`, frequency, and note
 
-`abc(x)`
+**Convenience**
+- Saved **history** of your last 100 equations, one tap to graph again
+- Material 3 design with **dynamic color** and light/dark themes
 
-can be rejected during input rather than only after pressing the graph button.
+## Supported math
 
-### Multiple equations
+| Category | Syntax |
+|---|---|
+| Operators | `+  -  *  /  ^`, also `×  ÷  −` |
+| Powers | `x^2`, `x²`, `x⁻³`, `sin²(x)` |
+| Roots | `sqrt(x)`, `√x`, `cbrt(x)`, `∛x` |
+| Trig | `sin cos tan cot sec csc` |
+| Inverse trig | `asin acos atan` (also `arcsin`, `arccos`, `arctan`) |
+| Hyperbolic | `sinh cosh tanh` |
+| Logs and more | `ln`, `log` (base 10), `exp`, `abs` |
+| Constants | `pi`, `π`, `e` |
+| Shortcuts | implicit multiplication: `2x`, `3(x+1)`, `(x+1)(x-1)` |
 
-The visualization supports up to 8 equations simultaneously.
+Try: `sin(x)/x` · `x³ - 3x` · `tan(x)` · `e^(-x²)` · `√(25 - x²)`
 
-Each equation has:
+## How it works
 
-- A stable layer ID
-- Its original entered expression
-- A canonical expression used for duplicate detection
-- Its sampled graph data
-- A graph color
-- Visibility state
-- Audio state
-
-Equations can be:
-
-- Added
-- Edited
-- Removed
-- Shown or hidden
-- Muted or unmuted
-
-Editing an equation preserves the layer identity and replaces its native expression and graph data.
-
-### Interactive graph visualization
-
-The graph view supports:
-
-- Panning
-- Pinch-to-zoom
-- Adaptive graph sampling
-- Pixel-aware sampling
-- Manual long-press cursor interaction
-- Multi-equation cursor inspection
-- Discontinuity and undefined-region handling
-- Asymptote/gap handling
-- Re-sampling after viewport changes
-
-The native sampler adapts its sampling density to the current viewport instead of using one fixed resolution for every zoom level.
-
-Current sampling parameters in the ViewModel include:
-
-- Initial sample count: 3000
-- Sampling target: approximately 3 samples per pixel
-- Minimum viewport samples: 1000
-- Maximum viewport samples: 20000
-
-The native graph sampler also separates undefined/discontinuous portions so that the renderer does not incorrectly connect unrelated graph segments.
-
-### Graph cursor
-
-The visualization provides a manual cursor for inspecting graph values.
-
-With multiple equations, cursor state can be used to inspect the corresponding values of visible graph layers at the selected x-coordinate.
-
-### Audio / sonification
-
-GraphSonic converts graph values into sound.
-
-The audio subsystem contains:
-
-- `AudioEngine`
-- `ListenController`
-- `FrequencyMapper`
-- `NoteMapper`
-- `GraphSegmentExtractor`
-- `GraphSegment`
-- `Waveform`
-- `ListenState`
-
-Supported controls include:
-
-- Listen / stop
-- Per-equation audio enable/disable
-- Frequency mode
-- Waveform selection
-- Playback speed
-- Volume
-
-The audio system is designed around defined graph segments so that undefined mathematical regions do not become arbitrary audio transitions.
-
-### History
-
-GraphSonic stores equation history locally.
-
-The history repository:
-
-- Uses Android `SharedPreferences` with JSON storage
-- Keeps up to 100 entries
-- De-duplicates expressions
-- Moves a newly selected/added expression to the top
-- Provides history data to the equation and history flows
-
-History is local to the application and does not require a backend service.
-
-## Architecture
-
-GraphSonic uses a layered Android/native architecture.
-
-```text
-Android / Jetpack Compose
-        |
-        v
-Feature screens + ViewModels
-        |
-        v
-Kotlin application/domain layer
-        |
-        +----------------------+
-        |                      |
-        v                      v
-    GraphEngine          ListenController
-        |                      |
-        v                      v
-    NativeBridge          AudioEngine
-        |
-        v
-JNI
-        |
-        v
-C++ mathematical + graph engine
+```mermaid
+flowchart LR
+    A[Equation text] --> B[Lexer]
+    B --> C[Parser<br/>recursive descent]
+    C --> D[AST]
+    D --> E[Evaluator]
+    E --> F[Adaptive sampler<br/>asymptote detection]
+    F -- JNI double array --> G[Compose Canvas]
+    E -- evaluate at x --> H[ListenController]
+    H --> I[AudioEngine<br/>AudioTrack, 44.1 kHz]
 ```
 
-### Kotlin layer
+- **Native engine (C++17):** the lexer, parser, evaluator, and adaptive sampler run in C++ and are called through JNI. The sampler subdivides where the curve bends and breaks the line at discontinuities.
+- **UI (Kotlin + Compose):** MVVM with `StateFlow`. The graph is drawn on a single Compose `Canvas` with custom gesture handling.
+- **Audio:** a dedicated thread mixes up to 16 voices into 16-bit PCM and streams it with `AudioTrack`.
 
-The main Kotlin packages are:
+## Project structure
 
-```text
-com.anuj.graphsonic
-├── data
-│   └── history
-├── domain
-│   └── model
-├── engine
-│   ├── GraphEngine
-│   └── NativeBridge
-├── feature
-│   ├── audio
-│   ├── equation
-│   ├── history
-│   ├── navigation
-│   └── visualization
-└── ui
+```
+app/src/main
+├── cpp/                     # C++ engine
+│   ├── math/                #   Lexer, Parser, AST, Evaluator
+│   ├── graph/               #   Adaptive GraphSampler
+│   └── jni/                 #   NativeBridge
+└── java/com/anuj/graphsonic
+    ├── engine/              # Kotlin side of the JNI bridge
+    ├── data/history/        # Equation history storage
+    ├── domain/model/        # GraphData, GraphPoint
+    ├── feature/
+    │   ├── equation/        #   Equation input screen
+    │   ├── visualization/   #   Graph canvas, viewport, cursor, ViewModel
+    │   ├── audio/           #   Audio engine, listen controller, mappers
+    │   ├── history/         #   History screen
+    │   └── navigation/      #   NavHost and bottom bar
+    └── ui/                  # Theme, colors, typography
 ```
 
-### Data and history
+## Tech stack
 
-`data/history`
+| | |
+|---|---|
+| Language | Kotlin 2.2, C++17 |
+| UI | Jetpack Compose, Material 3, Navigation Compose |
+| Architecture | MVVM, unidirectional data flow, `StateFlow` |
+| Native | NDK, CMake 3.22.1, JNI |
+| Audio | `AudioTrack` (PCM 16-bit, mono, 44.1 kHz) |
+| Build | AGP 9.3, Gradle 9.5, version catalog |
+| Min / Target SDK | 26 / 37 |
 
-Contains the local equation history repository.
+## Getting started
 
-### Domain models
-
-`domain/model`
-
-Contains graph data models such as:
-
-- `GraphData`
-- `GraphPoint`
-
-### Native bridge
-
-`engine/NativeBridge.kt`
-
-Defines the JNI boundary used by Kotlin to communicate with the C++ expression engine.
-
-The native API currently includes operations for:
-
-- Creating an expression
-- Validating an expression
-- Evaluating an expression
-- Checking whether an expression is defined at x
-- Generating graph samples
-- Destroying native expressions
-- Obtaining canonical expressions
-
-### Graph engine
-
-`engine/GraphEngine.kt`
-
-Provides the Kotlin-side graph generation abstraction over the native bridge.
-
-### Equation feature
-
-`feature/equation`
-
-Responsible for expression entry and the initial graphing flow.
-
-The equation screen also performs live validation through the ViewModel/native parser.
-
-### Visualization feature
-
-`feature/visualization`
-
-This is the main graphing feature.
-
-Important components include:
-
-- `VisualizationScreen`
-- `VisualizationViewModel`
-- `GraphLayer`
-- `GraphViewport`
-- `GraphViewportController`
-- `GraphCursorState`
-- `GraphSampler`
-- `GraphCanvas`
-- `GraphCursor`
-- `CursorInfoCard`
-- `ListenControls`
-- `ListenPanel`
-- `ListenInfoCard`
-- `GraphCoordinateUtils`
-
-The ViewModel owns the graph-layer state, native expression handles, history integration, viewport-triggered resampling, cursor state, and listening configuration.
-
-### Audio feature
-
-`feature/audio`
-
-Responsible for turning sampled graph data into sound.
-
-The audio path is intentionally separated from graph rendering so graph interaction and sonification can evolve independently.
-
-### Navigation
-
-`feature/navigation`
-
-Contains:
-
-- `AppDestination`
-- `AppNavigation`
-
-The navigation layer connects equation input, history, and visualization.
-
-### UI
-
-`ui`
-
-Contains application theme, colors, typography, and shared UI elements.
-
-## Native C++ Engine
-
-The native engine is located under:
-
-```text
-app/src/main/cpp
+```bash
+git clone https://github.com/anuj990/GraphSonic.git
+cd GraphSonic
 ```
 
-It is built as the shared library:
+1. Open the folder in the latest **Android Studio**.
+2. In **SDK Manager → SDK Tools**, install **NDK (Side by side)** and **CMake 3.22.1**.
+3. Let Gradle sync, then press **Run** on a device or emulator (Android 8.0+).
 
-`graphsonic`
-
-using CMake and C++17.
-
-### Native source structure
-
-```text
-app/src/main/cpp
-├── CMakeLists.txt
-├── graphsonic.cpp
-├── jni
-│   └── NativeBridge.cpp
-├── math
-│   ├── AST.cpp
-│   ├── AST.h
-│   ├── Evaluator.cpp
-│   ├── Evaluator.h
-│   ├── Expression.cpp
-│   ├── Expression.h
-│   ├── Lexer.cpp
-│   ├── Lexer.h
-│   ├── Parser.cpp
-│   ├── Parser.h
-│   ├── Token.cpp
-│   └── Token.h
-└── graph
-    ├── GraphSampler.cpp
-    └── GraphSampler.h
-```
-
-### Lexer
-
-The lexer converts the expression string into tokens.
-
-The token model includes mathematical operators, parentheses, functions, superscript notation, and comma-separated function arguments.
-
-### Parser
-
-The parser converts tokens into an AST.
-
-The parser is responsible for expression structure, precedence, implicit multiplication, function arguments, superscript powers, and syntax errors.
-
-### AST
-
-The AST represents mathematical expressions using nodes for:
-
-- Numbers
-- Variables
-- Unary operations
-- Binary operations
-- Functions
-
-Binary nodes contain an operator and left/right children. Function nodes contain their function name and argument nodes.
-
-### Evaluator
-
-The evaluator walks the AST for a supplied x value.
-
-It contains domain handling for operations such as:
-
-- Division by zero
-- Invalid logarithm arguments
-- Invalid square roots
-- Trigonometric singularities
-- Inverse-trigonometric domain limits
-- Invalid powers
-- Undefined results
-- Non-finite results
-
-The evaluator returns undefined/non-finite results in a form the graph and audio layers can recognize.
-
-### Expression
-
-`Expression` ties parsing and evaluation together and provides canonical expression output.
-
-Canonical expressions are used by the Kotlin layer to detect duplicate equations even when equivalent input forms have different textual representations.
-
-### Graph sampler
-
-`GraphSampler` samples an expression over an x-range.
-
-Its responsibilities include:
-
-- Generating graph samples
-- Adapting sample density
-- Detecting undefined regions
-- Preserving discontinuities
-- Avoiding false line connections across gaps
-- Supporting viewport-sized sampling
-
-This is an important correctness boundary between mathematical evaluation and visual rendering.
-
-### JNI
-
-`jni/NativeBridge.cpp` exposes the C++ engine to Kotlin.
-
-JNI responsibilities include:
-
-- Converting Kotlin strings into native strings
-- Constructing and destroying native expression objects
-- Translating native parser exceptions into Java exceptions
-- Returning graph arrays to Kotlin
-- Returning canonical expressions
-- Performing defensive handle checks
-- Returning safe undefined values for evaluation failures
-
-## Expression Processing Pipeline
-
-A typical expression follows this path:
-
-```text
-User input
-   |
-   v
-EquationScreen
-   |
-   v
-VisualizationViewModel
-   |
-   v
-NativeBridge
-   |
-   v
-JNI
-   |
-   v
-Lexer
-   |
-   v
-Parser
-   |
-   v
-AST
-   |
-   v
-Expression
-   |
-   +--------> canonical expression
-   |
-   +--------> evaluator
-   |
-   v
-GraphSampler
-   |
-   v
-GraphData
-   |
-   +--------> Compose graph rendering
-   |
-   +--------> Audio segment extraction
-                    |
-                    v
-               Frequency mapping
-                    |
-                    v
-               AudioEngine
-```
-
-## Threading and Lifecycle Safety
-
-GraphSonic contains asynchronous graph resampling and audio playback, so native expression lifetime is important.
-
-The current architecture uses:
-
-- A native read/write lock around native expression access
-- A sampling generation counter to reject stale resampling results
-- ViewModel-scoped coroutines for asynchronous graph work
-- Explicit audio lifecycle handling
-- Playback generation/state handling
-- Cleanup of native expression handles when the ViewModel is cleared
-
-The goal is to prevent background graph/audio work from using native expression objects after they have been destroyed.
-
-## Build Configuration
-
-The repository currently uses:
-
-- Android Gradle Plugin: 9.3.1
-- Kotlin: 2.2.10
-- Compile SDK: 37
-- Target SDK: 37
-- Minimum SDK: 26
-- Java compatibility: 11
-- CMake: 3.22.1
-- C++ standard: C++17
-- Jetpack Compose
-- Material 3
-- Navigation Compose
-- AndroidX Lifecycle
-- AndroidX Room dependency is currently present in the Gradle configuration, although equation history itself is implemented through the history repository rather than a Room database.
-
-Application identifiers:
-
-`com.anuj.graphsonic`
-
-Native library:
-
-`graphsonic`
-
-Current application version:
-
-- versionCode: 1
-- versionName: 1.0
-
-## Building the Project
-
-Open the repository in Android Studio and allow Gradle to synchronize.
-
-The project uses the Gradle wrapper.
-
-### Debug build
-
-Linux/macOS:
+Or build from the terminal:
 
 ```bash
 ./gradlew assembleDebug
 ```
 
-Windows:
+<!-- Add an APK once you publish a release -->
+[![Download APK](https://img.shields.io/github/v/release/anuj990/GraphSonic?label=Download%20APK&style=for-the-badge&logo=android&color=3DDC84)](https://github.com/anuj990/GraphSonic/releases/latest)
 
-```bat
-gradlew.bat assembleDebug
-```
+## Roadmap
 
-### Unit tests
+- [ ] Custom math keyboard (no more typing `²` and `√` by hand)
+- [ ] Trace mode: drag to scrub and hear the pitch instantly
+- [ ] TalkBack support: step through the graph and announce `x`, `y`, and note
+- [ ] Pitch mapped to the visible y-range instead of `|y|`
+- [ ] More functions: `floor`, `ceil`, `sign`, `|x|`, `log(x, base)`
+- [ ] Export graph as PNG and sound as WAV
+- [ ] Tablet and landscape two-pane layout
+- [ ] Unit tests for the parser and sampler
 
-Linux/macOS:
-
-```bash
-./gradlew test
-```
-
-Windows:
-
-```bat
-gradlew.bat test
-```
-
-### Android instrumentation tests
-
-Linux/macOS:
-
-```bash
-./gradlew connectedAndroidTest
-```
-
-Windows:
-
-```bat
-gradlew.bat connectedAndroidTest
-```
-
-The native layer is compiled automatically through the configured CMake external native build.
-
-## Testing the Main User Flows
-
-After building, the following flows are useful smoke tests.
-
-### Basic graphing
-
-1. Launch GraphSonic.
-2. Enter `sin(x)`.
-3. Graph the expression.
-4. Confirm the graph renders.
-
-### Invalid expression validation
-
-1. Open equation input.
-2. Type `abc(x)`.
-3. Confirm an error appears while typing.
-4. Replace it with `sin(x)`.
-5. Confirm the error disappears.
-
-### Multiple equations
-
-1. Add more than one equation.
-2. Confirm each graph is independently visible.
-3. Toggle individual graph visibility.
-4. Toggle individual audio state.
-5. Remove an equation.
-6. Edit an equation.
-
-### Graph interaction
-
-1. Pan the graph.
-2. Pinch to zoom.
-3. Long-press to move the cursor.
-4. Test multiple visible equations at the same cursor position.
-5. Test functions with discontinuities such as `tan(x)`.
-
-### Mathematical edge cases
-
-Useful expressions include:
-
-```text
-x²
-x³
-2x
-xsin(x)
-sin 2x
-log(x,2)
-floor(x)
-ceil(x)
-(-8)^(1/3)
-tan(x)
-1/x
-sqrt(x)
-```
-
-These exercise different parser, evaluator, and graph-sampling paths.
-
-### Audio
-
-1. Graph a continuous expression.
-2. Start listening.
-3. Stop listening.
-4. Start again.
-5. Toggle equation audio on/off.
-6. Change waveform, frequency mode, speed, and volume.
-7. Test an expression containing undefined regions.
-
-## Current Development Roadmap
-
-The current engineering backlog contains several known areas that are intentionally separate from the completed mathematical correctness fixes.
-
-### Graph coverage during panning
-
-The current resampling flow samples the visible viewport. A planned improvement is to sample a small buffer beyond the viewport so normal panning does not expose empty graph edges.
-
-### Resampling state protection
-
-Further work is planned around ensuring that concurrent graph operations cannot lose newer state when older asynchronous work finishes.
-
-### Listen-state performance
-
-The audio UI currently exposes frequently changing playback state. Further work is planned to reduce unnecessary Compose recomposition caused by high-frequency state updates.
-
-### Graph allocation performance
-
-Graph data currently crosses the native/Kotlin boundary as arrays and is represented by Kotlin graph data structures. Further optimization can reduce copying and object allocation during high-density sampling.
-
-### Native/release optimization
-
-Release optimization is currently disabled in the Android build configuration. Native and release build optimization should be evaluated before production distribution.
-
-### Architecture cleanup
-
-The repository still contains some legacy or potentially unused visualization/support classes. Cleanup should happen only after confirming their actual usage and after the core behavior is stable.
-
-## Important Design Principles
-
-### Native engine owns mathematical correctness
-
-Parsing and numerical evaluation are implemented in C++. Kotlin should not duplicate mathematical parsing rules.
-
-### Kotlin owns application state
-
-Compose and ViewModel code manage:
-
-- User input
-- Graph layers
-- Navigation
-- History
-- Viewport state
-- Audio controls
-- Cursor state
-
-### Graph and audio share mathematical data
-
-The graph sampler produces data that can be used both visually and sonically.
-
-### Undefined is meaningful
-
-A function being undefined at a particular x is not treated as an ordinary zero or an arbitrary point. Graph sampling and audio segmentation use defined regions to preserve mathematical discontinuities.
-
-### Stable equation identity
-
-Graph layers have stable IDs so that editing, visibility, audio state, and native handles can be managed independently.
-
-## Repository Layout
-
-At a high level:
-
-```text
-GraphSonic/
-├── app/
-│   ├── src/
-│   │   ├── androidTest/
-│   │   ├── main/
-│   │   │   ├── cpp/
-│   │   │   ├── java/
-│   │   │   ├── keepRules/
-│   │   │   └── res/
-│   │   └── test/
-│   └── build.gradle.kts
-├── gradle/
-│   ├── libs.versions.toml
-│   └── wrapper/
-├── build.gradle.kts
-├── gradle.properties
-├── gradlew
-├── gradlew.bat
-└── settings.gradle.kts
-```
+Have an idea? [Open an issue](https://github.com/anuj990/GraphSonic/issues/new).
 
 ## Contributing
 
-Before changing the project:
+Contributions are welcome, from typo fixes to new features.
 
-1. Understand whether the behavior belongs in Kotlin or the native engine.
-2. Preserve the native expression lifecycle rules.
-3. Avoid duplicating parser/evaluator logic in Kotlin.
-4. Test mathematical edge cases when modifying the parser/evaluator.
-5. Test discontinuities when modifying graph sampling.
-6. Test rapid start/stop and lifecycle transitions when modifying audio.
-7. Build after each focused change.
-8. Keep unrelated UI changes separate from correctness or performance fixes.
+1. Fork the repo and create a branch: `git checkout -b feature/my-idea`
+2. Commit your changes and push the branch
+3. Open a pull request describing what you changed and why
 
-For larger changes, prefer small, focused commits that make regressions easy to identify.
+Good first issues: new math functions in `Evaluator.cpp` and `Lexer.cpp`, new waveforms in `AudioEngine.kt`, or a new color palette.
 
-## Known Scope Boundaries
+## Stats
 
-GraphSonic is currently focused on explicit functions of x.
+<div align="center">
 
-Implicit equations and more advanced mathematical systems are not described as supported features unless implemented by the current parser/evaluator.
+<a href="https://github.com/anuj990/GraphSonic">
+  <img src="https://github-readme-stats.vercel.app/api/pin/?username=anuj990&repo=GraphSonic&theme=tokyonight&show_owner=true" alt="Repo card"/>
+</a>
 
-The application currently uses local history storage and does not require a network backend for its core graphing or sonification workflow.
+<a href="https://star-history.com/#anuj990/GraphSonic&Date">
+  <img src="https://api.star-history.com/svg?repos=anuj990/GraphSonic&type=Date" width="520" alt="Star history"/>
+</a>
 
-## License
+**Contributors**
 
-No license file is currently present in the repository. Until a license is added, the repository should not be assumed to grant broad rights to reuse, modify, or redistribute the source.
+<a href="https://github.com/anuj990/GraphSonic/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=anuj990/GraphSonic" alt="Contributors"/>
+</a>
 
-## Project Goal
+<img src="https://api.visitorbadge.io/api/visitors?path=anuj990%2FGraphSonic&label=Views&countColor=%23263759" alt="Views"/>
 
-The long-term goal of GraphSonic is to make mathematical functions explorable through both **visual structure and sound**, while keeping the mathematical engine accurate, the graph interactive, and the audio representation responsive.
+</div>
 
-The project deliberately separates the mathematical engine, graph sampling, Android state management, visualization, and audio pipeline so each part can evolve without making the entire application dependent on one implementation layer.
+## Author
+
+**Anuj**, Android developer · [GitHub @anuj990](https://github.com/anuj990)
+
+---
+
+<div align="center">
+
+**Built with Kotlin, C++, and a love for math you can hear.**
+
+If you liked it, please **⭐ star the repo** and share it with a friend who is learning functions.
+
+</div>
